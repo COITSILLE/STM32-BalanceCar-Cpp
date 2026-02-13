@@ -203,7 +203,7 @@ void Task_PIDv(uint8_t runtime){
     // DWT_Timestamp last_time = {0};
     // float FB = R_w * angvel - (L + R_w) * Gyro.y;
     // theta_pid.setSP(s_atan(velocity_pid.getCO(FB) / g));
-    exp_voltage_v = velocity_pid.getCO(R_w * angvel - (L + R_w) * Gyro.y);
+    exp_voltage_v = velocity_pid.getCO(R_w * angvel);
     //Task_PIDv_runtime = getDistance(last_time, getTick());
     //last_time = getTick();
 }
