@@ -25,6 +25,7 @@ public:
     void readAccelGyro(Vec3_t& accel_vec, Vec3_t& gyro_vec) {static_cast<Sensor_i*>(this)->readAccelGyro(accel_vec, gyro_vec);};
     Vec3_t getEulerAngles(Vec3_t& accel_vec, Vec3_t& gyro_vec, float k = 0.95);
     void getOffset(float sample_times, float expected_g);
+    void calibrateZ(float sample_times);
     void setOffset(Vec3_t accel_offset, Vec3_t gyro_offset);
     Vec3_t getOffsetAccel() const { return this->offset.accel; }
     Vec3_t getOffsetGyro() const { return this->offset.gyro; }

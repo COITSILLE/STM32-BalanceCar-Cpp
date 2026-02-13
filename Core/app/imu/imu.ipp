@@ -66,6 +66,21 @@ void IMU_Base<Sensor_i, _InitParams_>::getOffset(float sample_times, float expec
 }
 
 template<typename Sensor_i, typename _InitParams_>
+void IMU_Base<Sensor_i, _InitParams_>::calibrateZ(float sample_times){
+    Vec3_t Gyro;
+    Vec3_t Gyro_Sum = {0,0,0};
+    this->offset.accel.z = 0.0f;
+
+    for (uint8_t i = 0; i < sample_times; i++){
+        this->readGyro(Gyro);
+        Gyro_Sum = Gyro_Sum + Gyro;
+        HAL_Delay(this->params.call_period + 1);
+    }
+
+    this->offset.gyro.z = (float)Gyro_Sum.z / sample_times;
+}
+
+template<typename Sensor_i, typename _InitParams_>
 void IMU_Base<Sensor_i, _InitParams_>::setOffset(Vec3_t accel_offset, Vec3_t gyro_offset){
     this->offset.accel = accel_offset;
     this->offset.gyro = gyro_offset;

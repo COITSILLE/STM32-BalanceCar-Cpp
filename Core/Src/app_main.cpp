@@ -8,8 +8,6 @@
 #ifdef __cplusplus
 #define VOLTAGE_COEFF 4.12f
 // Function prototypes
-void key1_callback();
-void key_imuoffset_callback();
 void Task_GetMotorSpeed(uint8_t runtime);
 void Task_PIDt(uint8_t runtime);
 void Task_PIDv(uint8_t runtime);
@@ -21,6 +19,7 @@ void Task_UART(uint16_t runtime);
 void Task_OLED(uint16_t runtime);
 void Task_key1(uint8_t runtime); void key1_callback();
 void Task_key_imuoffset(uint8_t runtime); void key_imuoffset_callback();
+void Task_key_gyrooffset(uint8_t runtime); void key_gyrooffset_callback();
 
 //global variables
 float raw_angvel_l = 0;
@@ -62,6 +61,7 @@ MPU6050 imu(&hi2c1);
 uint8_t imu_buffer[14];
 Key key1(GPIOA, GPIO_PIN_8, GPIO_PIN_SET, RISING_EDGE, key1_callback);
 Key key_imuoffset(GPIOB, GPIO_PIN_3, GPIO_PIN_RESET, RISING_EDGE, key_imuoffset_callback);
+Key key_gyrooffset(GPIOB, GPIO_PIN_4, GPIO_PIN_RESET, RISING_EDGE, key_gyrooffset_callback);
 
 PWM motor_l_pwm(&htim3, TIM_CHANNEL_2, 36000000);
 PWM motor_r_pwm(&htim3, TIM_CHANNEL_1, 36000000);
@@ -201,9 +201,9 @@ void Task_PIDt(uint8_t runtime){
 void Task_PIDv(uint8_t runtime){
     NON_BLOCK_DELAY(runtime);
     // DWT_Timestamp last_time = {0};
-    // float FB = R_w * angvel - (L + R_w) * Gyro.y;
-    // theta_pid.setSP(s_atan(velocity_pid.getCO(FB) / g));
-    exp_voltage_v = velocity_pid.getCO(R_w * angvel);
+    float FB = R_w * angvel;
+    theta_pid.setSP(s_atan(velocity_pid.getCO(FB) / g));
+    //exp_voltage_v = velocity_pid.getCO(R_w * angvel);
     //Task_PIDv_runtime = getDistance(last_time, getTick());
     //last_time = getTick();
 }
@@ -224,7 +224,7 @@ void Task_IMU(uint8_t runtime){
 void Task_UpdateMotor(uint8_t runtime){
     NON_BLOCK_DELAY(runtime);
     //DWT_Timestamp time_now = getTick();
-    exp_voltage = exp_voltage_t - exp_voltage_v;
+    exp_voltage = exp_voltage_t;
     float exp_voltage_l = exp_voltage + exp_voltage_rot;
     float exp_voltage_r = exp_voltage - exp_voltage_rot;
 
@@ -333,6 +333,19 @@ void key_imuoffset_callback(){
         HAL_UART_Transmit(&huart2, tail, 4, 1000);
     }
 }
+
+void Task_key_gyrooffset(uint8_t runtime){
+    NON_BLOCK_DELAY(runtime);
+    key_gyrooffset.proc();
+}
+void key_gyrooffset_callback(){
+    if (debug_mode){
+        imu.calibrateZ(200);
+        HAL_UART_Transmit(&huart2, (uint8_t *)"Gyro Z offset updated", 22, 1000);
+        HAL_UART_Transmit(&huart2, tail, 4, 1000);
+    }
+}
+
 
 //UART debug command analiysis
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size){
