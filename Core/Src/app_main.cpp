@@ -159,11 +159,13 @@ void loop(){
     Task_IMU(1);
 
     Task_GetMotorSpeed(8);
-    Task_PIDv(60);
+    Task_PIDv(40);
     
     Task_PIDt(5);
 
     Task_UpdateMotor(6);
+
+    
 
     Task_key1(10);
     Task_key_imuoffset(10);
