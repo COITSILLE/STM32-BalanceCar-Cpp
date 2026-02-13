@@ -41,11 +41,13 @@ void MotorEncoder::irq_handler(){
 }
 
 float MotorEncoder::getAngVelocity(){
+    uint32_t primask = __get_PRIMASK();
     __disable_irq();
     int8_t dir_cpy = this->time_params.dir;
     DWT_Timestamp t0_cpy = this->time_params.t0;
     DWT_Timestamp t1_cpy = this->time_params.t1;
     __enable_irq();
+    __set_PRIMASK(primask);
 
     uint32_t dt = MAX(getDistance(t0_cpy, t1_cpy), getDistance(t1_cpy, getTick()));
 

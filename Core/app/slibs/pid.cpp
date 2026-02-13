@@ -70,11 +70,16 @@ float PID::getCO(float FB){
         the normal GetCO function may cause differentiating an integrated value, which causes noise.
  * @attention Normally the err_d passed in, say "theta", since error equals SP - FB, should be "-theta"
 */
-float PID::getCO(float FB, float err_d){
+float PID::getCO(float FB, float FB_d){
     DWT_Timestamp time_now = getTick();
     float dt = getDistance(last_time, time_now) * 1.0e-6;
     float err = this->_SP_ - FB;
 
+    static float last_SP_d = 0.0;
+    float SP_d = this->_SP_ - last_SP_d / dt;
+    last_SP_d = this->_SP_;
+
+    float err_d = SP_d - FB_d;
     float err_i = this->last_err_i + (err + this->last_err) * dt * 0.5;
     
     if (err_i > this->_KiLimit_ || err_i < -this->_KiLimit_){

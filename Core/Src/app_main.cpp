@@ -166,8 +166,8 @@ void app_main(){
 void loop(){
     Task_IMU(1);
 
-    Task_GetMotorSpeed(8);
-    Task_PIDv(15);
+    Task_GetMotorSpeed(5);
+    Task_PIDv(20);
     
     Task_PIDt(5);
 
@@ -196,7 +196,7 @@ void Task_GetMotorSpeed(uint8_t runtime){
 
 void Task_PIDt(uint8_t runtime){
     NON_BLOCK_DELAY(runtime);
-    exp_voltage_t = -theta_pid.getCO(EurAngs.y, -Gyro.y);
+    exp_voltage_t = -theta_pid.getCO(EurAngs.y, Gyro.y);
 }
 void Task_PIDv(uint8_t runtime){
     NON_BLOCK_DELAY(runtime);
@@ -356,7 +356,19 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size){
                 return;
             }
 
-            uint8_t cmd_flag = 0;
+            enum CmdFlag : uint8_t {
+                CMD_NONE = 0,
+                CMD_PIDV = 1,
+                CMD_SPV = 2,
+                CMD_LIMITV = 3,
+                CMD_PIDT = 4,
+                CMD_LIMITT = 5,
+                CMD_PIDR = 6,
+                CMD_SPR = 7,
+                CMD_LIMITR = 8,
+                CMD_SPT = 9
+            };
+            uint8_t cmd_flag = CMD_NONE;
             if (cmd == NULL){
                 sprintf(msg, "error");
                 HAL_UART_Transmit(&huart2, (uint8_t *)msg, sizeof(msg), 1000);
@@ -364,28 +376,31 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size){
                 return;
             }
             else if (strcmp(cmd, "pid1") == 0) {
-                cmd_flag = 4;
+                cmd_flag = CMD_PIDT;
+            }
+            else if (strcmp(cmd, "sp1") == 0){
+                cmd_flag = CMD_SPT;
             }
             else if (strcmp(cmd, "pid2") == 0){
-                cmd_flag = 1;
+                cmd_flag = CMD_PIDV;
             }
             else if (strcmp(cmd, "sp2") == 0){
-                cmd_flag = 2;
+                cmd_flag = CMD_SPV;
             }
             else if (strcmp(cmd, "limit2") == 0){
-                cmd_flag = 3;
+                cmd_flag = CMD_LIMITV;
             }
             else if (strcmp(cmd, "limit1") == 0){
-                cmd_flag = 5;
+                cmd_flag = CMD_LIMITT;
             }
             else if (strcmp(cmd, "pid3") == 0){
-                cmd_flag = 6;
+                cmd_flag = CMD_PIDR;
             }
             else if (strcmp(cmd, "sp3") == 0){
-                cmd_flag = 7;
+                cmd_flag = CMD_SPR;
             }
             else if (strcmp(cmd, "limit3") == 0){
-                cmd_flag = 8;
+                cmd_flag = CMD_LIMITR;
             }
             else {
                 sprintf(msg, "%15s","unknown cmd");
@@ -401,35 +416,38 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size){
             }
 
             switch (cmd_flag) {
-                case 1:
+                case CMD_PIDV:
                     velocity_pid.setFactors(pidparams[0], pidparams[1], pidparams[2]);
                     break;
-                case 2:
+                case CMD_SPV:
                     velocity_pid.setSP(pidparams[0]);
                     break;
-                case 3:
+                case CMD_LIMITV:
                     velocity_pid.setLimit(pidparams[0], pidparams[1], pidparams[2]);
                     break;
-                case 4:
+                case CMD_PIDT:
                     theta_pid.setFactors(pidparams[0], pidparams[1], pidparams[2]);
                     break;
-                case 5:
+                case CMD_LIMITT:
                     theta_pid.setLimit(pidparams[0], pidparams[1], pidparams[2]);
                     break;
-                case 6:
+                case CMD_PIDR:
                     rotate_pid.setFactors(pidparams[0], pidparams[1], pidparams[2]);
                     break;
-                case 7:
+                case CMD_SPR:
                     rotate_pid.setSP(pidparams[0]);
                     break;
-                case 8:
+                case CMD_LIMITR:
                     rotate_pid.setLimit(pidparams[0], pidparams[1], pidparams[2]);
+                    break;
+                case CMD_SPT:
+                    theta_pid.setSP(pidparams[0]);
                     break;
             }
             switch (cmd_flag) {
-                case 1:
-                case 2:
-                case 3:
+                case CMD_PIDV:
+                case CMD_SPV:
+                case CMD_LIMITV:
                 {
                     float paramsv[6] = {
                         velocity_pid.K_p(),
@@ -445,8 +463,9 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size){
                     sprintf(msg, "pidv:%s", digit_msg);
                     break;
                 }
-                case 4:
-                case 5:
+                case CMD_PIDT:
+                case CMD_LIMITT:
+                case CMD_SPT:
                 {
                     float paramst[6] = {
                         theta_pid.K_p(),
@@ -462,9 +481,9 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size){
                     sprintf(msg, "pidt:%s", digit_msg);
                     break;
                 }
-                case 6:
-                case 7:
-                case 8:
+                case CMD_PIDR:
+                case CMD_SPR:
+                case CMD_LIMITR:
                 {
                     float paramsr[6] = {
                         rotate_pid.K_p(),
