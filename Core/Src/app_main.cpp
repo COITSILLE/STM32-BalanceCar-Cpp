@@ -167,7 +167,7 @@ void loop(){
     Task_IMU(1);
 
     Task_GetMotorSpeed(8);
-    Task_PIDv(40);
+    Task_PIDv(15);
     
     Task_PIDt(5);
 
