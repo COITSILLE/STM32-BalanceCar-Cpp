@@ -73,8 +73,7 @@ MotorEncoder motor_l_encoder(20.049, 13, 2);
 MotorEncoder motor_r_encoder(20.049, 13, 2);
 
 PID theta_pid;
-//PID angvel_pid;
-PID motor_pid;
+PID angvel_pid;
 PID velocity_pid;
 PID rotate_pid;
 
@@ -204,7 +203,7 @@ void Task_PIDv(uint8_t runtime){
     // DWT_Timestamp last_time = {0};
     // float FB = R_w * angvel - (L + R_w) * Gyro.y;
     // theta_pid.setSP(s_atan(velocity_pid.getCO(FB) / g));
-    exp_voltage_v = velocity_pid.getCO(R_w * angvel);
+    exp_voltage_v = velocity_pid.getCO(R_w * angvel - (L + R_w) * Gyro.y);
     //Task_PIDv_runtime = getDistance(last_time, getTick());
     //last_time = getTick();
 }
