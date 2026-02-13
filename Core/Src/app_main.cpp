@@ -13,6 +13,7 @@ void key_imuoffset_callback();
 void Task_GetMotorSpeed(uint8_t runtime);
 void Task_PIDt(uint8_t runtime);
 void Task_PIDv(uint8_t runtime);
+void Task_PIDr(uint8_t runtime);
 void Task_IMU(uint8_t runtime);
 void Task_UpdateMotor(uint8_t runtime);
 void Task_GetBatteryVoltage(uint16_t runtime);
@@ -32,6 +33,7 @@ float bat_voltage;
 float exp_voltage_v;
 float exp_voltage_t;
 float exp_voltage;
+float exp_voltage_rot;
 float exp_theta;
 const float g = 9.8f;
 const float R_w = 0.325f;
@@ -74,6 +76,7 @@ PID theta_pid;
 //PID angvel_pid;
 PID motor_pid;
 PID velocity_pid;
+PID rotate_pid;
 
 SSD1306_I2C oled(&hi2c1);
 
@@ -132,6 +135,12 @@ void app_main(){
     velocity_pid.setSP(0);
     velocity_pid.setLimit(velocity_pid_factors[3], velocity_pid_factors[4], velocity_pid_factors[5]);
 
+    float rotate_pid_factors[6];
+    Flash_Read(rotate_pid_factors, 6, PAGE4);
+    rotate_pid.setFactors(rotate_pid_factors[0], rotate_pid_factors[1], rotate_pid_factors[2]);
+    rotate_pid.setSP(0);
+    rotate_pid.setLimit(rotate_pid_factors[3], rotate_pid_factors[4], rotate_pid_factors[5]);
+
     oled.init();
     oled.clear();
     oled.setString("HELLO", {0, 0}, ascii12, 10, 10);
@@ -162,6 +171,8 @@ void loop(){
     Task_PIDv(40);
     
     Task_PIDt(5);
+
+    Task_PIDr(5);
 
     Task_UpdateMotor(6);
 
@@ -197,6 +208,10 @@ void Task_PIDv(uint8_t runtime){
     //Task_PIDv_runtime = getDistance(last_time, getTick());
     //last_time = getTick();
 }
+void Task_PIDr(uint8_t runtime){
+    NON_BLOCK_DELAY(runtime);
+    exp_voltage_rot = rotate_pid.getCO(Gyro.z);
+}
 void Task_IMU(uint8_t runtime){
     NON_BLOCK_DELAY(runtime);
     if (imu_ready_flag && imu_cplt_flag){
@@ -211,25 +226,41 @@ void Task_UpdateMotor(uint8_t runtime){
     NON_BLOCK_DELAY(runtime);
     //DWT_Timestamp time_now = getTick();
     exp_voltage = exp_voltage_t - exp_voltage_v;
-    if (exp_voltage < 0){
+    float exp_voltage_l = exp_voltage + exp_voltage_rot;
+    float exp_voltage_r = exp_voltage - exp_voltage_rot;
+
+    if (exp_voltage_l < 0){
         motor_l.setControl(MOTOR_BACKWARD);
-        motor_r.setControl(MOTOR_BACKWARD);
     }
     else {
         motor_l.setControl(MOTOR_FORWARD);
+    }
+
+    if (exp_voltage_r < 0){
+        motor_r.setControl(MOTOR_BACKWARD);
+    }
+    else {
         motor_r.setControl(MOTOR_FORWARD);
     }
 
-    float duty;
-    if (ABS(exp_voltage) > bat_voltage){
-        duty = 0.99;
+    float duty_l;
+    if (ABS(exp_voltage_l) > bat_voltage){
+        duty_l = 0.99f;
     }
     else{
-        duty = exp_voltage / bat_voltage;
+        duty_l = exp_voltage_l / bat_voltage;
+    }
+
+    float duty_r;
+    if (ABS(exp_voltage_r) > bat_voltage){
+        duty_r = 0.99f;
+    }
+    else{
+        duty_r = exp_voltage_r / bat_voltage;
     }
     
-    motor_l.setDuty(ABS(duty));
-    motor_r.setDuty(ABS(duty));
+    motor_l.setDuty(ABS(duty_l));
+    motor_r.setDuty(ABS(duty_r));
     //Task_UpdateMotor_runtime = getDistance(time_now, getTick());
 }
 
@@ -348,6 +379,15 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size){
             else if (strcmp(cmd, "limit1") == 0){
                 cmd_flag = 5;
             }
+            else if (strcmp(cmd, "pid3") == 0){
+                cmd_flag = 6;
+            }
+            else if (strcmp(cmd, "sp3") == 0){
+                cmd_flag = 7;
+            }
+            else if (strcmp(cmd, "limit3") == 0){
+                cmd_flag = 8;
+            }
             else {
                 sprintf(msg, "%15s","unknown cmd");
                 HAL_UART_Transmit(&huart2, (uint8_t *)msg, sizeof(msg), 1000);
@@ -376,6 +416,15 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size){
                     break;
                 case 5:
                     theta_pid.setLimit(pidparams[0], pidparams[1], pidparams[2]);
+                    break;
+                case 6:
+                    rotate_pid.setFactors(pidparams[0], pidparams[1], pidparams[2]);
+                    break;
+                case 7:
+                    rotate_pid.setSP(pidparams[0]);
+                    break;
+                case 8:
+                    rotate_pid.setLimit(pidparams[0], pidparams[1], pidparams[2]);
                     break;
             }
             switch (cmd_flag) {
@@ -412,6 +461,24 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size){
                     char digit_msg[40] = "\0";
                     s_joinf(digit_msg, ',', paramst, 6, 3);
                     sprintf(msg, "pidt:%s", digit_msg);
+                    break;
+                }
+                case 6:
+                case 7:
+                case 8:
+                {
+                    float paramsr[6] = {
+                        rotate_pid.K_p(),
+                        rotate_pid.K_i(),
+                        rotate_pid.K_d(),
+                        rotate_pid.MaxOutput(),
+                        rotate_pid.MinOutput(),
+                        rotate_pid.KiLimit()
+                    };
+                    Flash_Write(paramsr, 6, PAGE4);
+                    char digit_msg[40] = "\0";
+                    s_joinf(digit_msg, ',', paramsr, 6, 3);
+                    sprintf(msg, "pidr:%s", digit_msg);
                     break;
                 }
             }
