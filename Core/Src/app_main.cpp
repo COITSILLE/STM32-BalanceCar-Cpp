@@ -179,7 +179,7 @@ void loop(){
     Task_key1(10);
     Task_key_imuoffset(10);
     Task_key_gyrooffset(10);
-    Task_UART(10);
+    //Task_UART(10);
     
     Task_GetBatteryVoltage(5000);
     Task_OLED(500);
@@ -359,11 +359,12 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size){
         char msg[65];
         
         memset(msg, 0, sizeof(msg));
-        sprintf(msg, "%6s","rcved");
-        HAL_UART_Transmit(&huart2, (uint8_t *)msg, sizeof(msg), 1000);
-        HAL_UART_Transmit(&huart2, tail, 4, 1000);
+        
 
         if (debug_mode){
+            sprintf(msg, "%6s","rcved");
+            HAL_UART_Transmit(&huart2, (uint8_t *)msg, sizeof(msg), 1000);
+            HAL_UART_Transmit(&huart2, tail, 4, 1000);
             float pidparams[3];
             //divide cmd and data
             char *cmd = s_strtok((char *)UARTRcvBfr, ' ');
@@ -524,7 +525,13 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size){
             HAL_UART_Transmit(&huart2, (uint8_t *)msg, sizeof(msg), 1000);
             HAL_UART_Transmit(&huart2, tail, 4, 1000);
         }
-        
+        else{
+            char *cmd = s_strtok((char *)UARTRcvBfr, ' ');
+            float sp = s_atof(s_strtok(NULL, ' '));
+            if (strcmp(cmd, "sp2") == 0) velocity_pid.setSP(sp);
+            else if (strcmp(cmd, "sp3") == 0) rotate_pid.setSP(sp);
+            memset((uint8_t *)UARTRcvBfr, 0, sizeof(UARTRcvBfr));
+        }
     }
     HAL_UARTEx_ReceiveToIdle_DMA(&huart2, (uint8_t *)UARTRcvBfr, sizeof(UARTRcvBfr));
     __HAL_DMA_DISABLE_IT(&hdma_usart2_rx, DMA_IT_HT);
