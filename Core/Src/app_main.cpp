@@ -22,10 +22,8 @@ void Task_key_imuoffset(uint8_t runtime); void key_imuoffset_callback();
 void Task_key_gyrooffset(uint8_t runtime); void key_gyrooffset_callback();
 
 //global variables
-float raw_angvel_l = 0;
-float raw_angvel_r = 0;
-float angvel = 0;
-float theta = 0;
+float raw_angvel = 0;
+float linvel = 0;
 
 uint16_t adc_voltages[2];
 float bat_voltage;
@@ -33,14 +31,14 @@ float exp_voltage_v;
 float exp_voltage_t;
 float exp_voltage;
 float exp_voltage_rot;
-float exp_theta;
+
 const float g = 9.8f;
-const float R_w = 0.325f;
-const float L = 0.25f;
+const float R_w = 0.033f;
+const float L = 0.026f;
 
 Vec3_t Accel, Gyro, EurAngs;
 
-uint32_t Task_IMU_runtime, Task_PIDv_runtime, Task_UpdateMotor_runtime;
+uint32_t Task_runtime1, Task_runtime2, Task_runtime3;
 //debug
 volatile uint8_t UARTRcvBfr[40];
 //bit0:pid mode flag; bit1:imu offset flag
@@ -50,7 +48,7 @@ volatile bool uart_flag = 1;
 volatile bool imu_ready_flag = 0;
 volatile bool imu_cplt_flag = 1;
 struct{
-    volatile float ch[4];
+    volatile float ch[6];
     uint8_t tail[4];
 }msg;
 const uint8_t tail[4] = {0x00, 0x00, 0x80, 0x7f};
@@ -79,6 +77,7 @@ PID rotate_pid;
 
 SSD1306_I2C oled(&hi2c1);
 
+FirstOrderFilter linvel_filter(0.35);
 AdaptiveFirstOrderFilter voltage_filter(0.08, 1, 0.92);
 
 
@@ -179,7 +178,8 @@ void loop(){
 
     Task_key1(10);
     Task_key_imuoffset(10);
-    Task_UART(20);
+    Task_key_gyrooffset(10);
+    Task_UART(10);
     
     Task_GetBatteryVoltage(5000);
     Task_OLED(500);
@@ -188,24 +188,25 @@ void loop(){
 //
 void Task_GetMotorSpeed(uint8_t runtime){
     NON_BLOCK_DELAY(runtime);
-    raw_angvel_l = -motor_l_encoder.getAngVelocity();
-    raw_angvel_r = motor_r_encoder.getAngVelocity();
-    angvel = (raw_angvel_r + raw_angvel_l) * 0.50f;
+    float raw_angvel_l = -motor_l_encoder.getAngVelocity();
+    float raw_angvel_r = motor_r_encoder.getAngVelocity();
+    raw_angvel = (raw_angvel_r + raw_angvel_l) * 0.50f;
+    linvel = linvel_filter.get(R_w * raw_angvel - L * Gyro.y);
 }
 
 
 void Task_PIDt(uint8_t runtime){
+    
     NON_BLOCK_DELAY(runtime);
+    
     exp_voltage_t = -theta_pid.getCO(EurAngs.y, Gyro.y);
+
 }
 void Task_PIDv(uint8_t runtime){
     NON_BLOCK_DELAY(runtime);
-    // DWT_Timestamp last_time = {0};
-    float FB = R_w * angvel;
-    theta_pid.setSP(s_atan(velocity_pid.getCO(FB) / g));
+    theta_pid.setSP(-s_atan(velocity_pid.getCO(linvel) / g));
     //exp_voltage_v = velocity_pid.getCO(R_w * angvel);
-    //Task_PIDv_runtime = getDistance(last_time, getTick());
-    //last_time = getTick();
+
 }
 void Task_PIDr(uint8_t runtime){
     NON_BLOCK_DELAY(runtime);
@@ -274,9 +275,11 @@ void Task_UART(uint16_t runtime){
     NON_BLOCK_DELAY(runtime);
     if ((!(debug_mode)) && uart_flag){
         msg.ch[0] = exp_voltage;
-        msg.ch[1] = angvel;
+        msg.ch[1] = linvel;
         msg.ch[2] = EurAngs.y;
         msg.ch[3] = theta_pid.SP();
+        msg.ch[4] = Gyro.y;
+        msg.ch[5] = raw_angvel;
         HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&msg, sizeof(msg));
         uart_flag = 0;
   }
@@ -310,6 +313,9 @@ void Task_key1(uint8_t runtime){
 }
 void key1_callback(){ 
     debug_mode = !debug_mode;
+
+    velocity_pid.reset();
+    theta_pid.reset();
 
     motor_l.stby(!debug_mode);
     motor_r.stby(!debug_mode);
@@ -543,13 +549,17 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 }
 
 void HAL_I2C_MemRxCpltCallback(I2C_HandleTypeDef *hi2c){
+    
     if (hi2c == &hi2c1){
+        DWT_Timestamp time_now = getTick();
         //DWT_Timestamp time_now = getTick();
         imu.readAccelGyro_IT_cplt_handler(imu_buffer, Accel, Gyro);
         EurAngs = imu.getEulerAngles(Accel, Gyro);   
         imu_cplt_flag = 1;
         //Task_IMU_runtime = getDistance(time_now, getTick());
+        Task_runtime2 = getDistance(time_now, getTick());
     }
+    
 }
 
 #endif
