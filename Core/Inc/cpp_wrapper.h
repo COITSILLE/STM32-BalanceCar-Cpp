@@ -1,4 +1,3 @@
-// cpp_wrapper.h
 #ifndef CPP_WRAPPER_H
 #define CPP_WRAPPER_H
 
@@ -6,7 +5,7 @@
 extern "C" {
 #endif
 
-// 需要的C语言头文件
+// C语言头文件
 #include "main.h"
 #include "adc.h"
 #include "dma.h"

@@ -23,20 +23,16 @@ class AdaptiveFirstOrderFilter{
 private:
     float alpha;
     float tolerance;
-    float alpha_add;
+    float alpha_increment;
     
-    volatile float alpha_cpy;
+    volatile float adaptive_alpha;
 
     volatile float last_value;
 public:
-    AdaptiveFirstOrderFilter(float alpha, float tolerance, float alpha_add)
-        : alpha(alpha), tolerance(tolerance), alpha_add(alpha_add), alpha_cpy(alpha), last_value(0){};
+    AdaptiveFirstOrderFilter(float alpha, float tolerance, float alphaIncrement)
+        : alpha(alpha), tolerance(tolerance), alpha_increment(alphaIncrement), adaptive_alpha(alpha), last_value(0){};
     float get(float value);
 };
-float FirstOrderFilter_Get(FirstOrderFilter *filter, float value);
-void FirstOrderFilter_Init(FirstOrderFilter *filter, float alpha);
-float AdaptiveFirstOrderFilter_Get(AdaptiveFirstOrderFilter *filter, float value);
-void AdaptiveFirstOrderFilter_Init(AdaptiveFirstOrderFilter *filter, float alpha, float tolerance, float alpha_add);
 
 #endif /* __cplusplus */
 #endif /* FILTER_H */

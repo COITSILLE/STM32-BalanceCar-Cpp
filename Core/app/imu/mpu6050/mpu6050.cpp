@@ -23,26 +23,17 @@ void MPU6050::setReg(uint8_t reg, uint8_t value){
     HAL_I2C_Master_Transmit(this->_hi2c_, this->_address_, cmd, sizeof(cmd), HAL_MAX_DELAY);
 }
 
-
-
-/**
- * @brief  Initialize the MPU6050
- * @param  Accel_FS: Accelerometer Full Scale. 2/4/8/16g
- * @param  Gyro_FS: Gyroscope Full Scale. 250/500/1000/2000dps
- * @param  DLPF_CFG: Digital Low Pass Filter Configuration. 0-7. Recommended value: 3
- * @param  SMPLRT_DIV: Sample Rate Division. 0-7. Recommended value: 4, when DLPF_CFG = 3
-*/
 void MPU6050::init(InitParams init_params){
     this->setReg(PWR_MGMT_1, 0b00000000);// Wake up device
 
     this->AccelFactor = (init_params.accelFS * this->params.g) / 32768.0f;
     this->GyroFactor = DEG_TO_RAD * init_params.gyroFS / 32768.0f;
 
-    if (init_params._DLPF_CFG == 0 || init_params._DLPF_CFG == 7){
-        this->params.call_period = (init_params._SMPLRT_DIV + 1) / 8000.0;
+    if (init_params._DLPF_CFG_ == 0 || init_params._DLPF_CFG_ == 7){
+        this->params.sampling_period = (init_params._SMPLRT_DIV_ + 1) / 8000.0;
     }
     else {
-        this->params.call_period = (init_params._SMPLRT_DIV + 1) / 1000.0;
+        this->params.sampling_period = (init_params._SMPLRT_DIV_ + 1) / 1000.0;
     }
 
     switch (init_params.accelFS) {
@@ -81,8 +72,8 @@ void MPU6050::init(InitParams init_params){
             break;
     
     }
-    this->setReg(DLPF_CFG, init_params._DLPF_CFG & 0b00000111);// DLPF 
-    this->setReg(SMPLRT_DIV, init_params._SMPLRT_DIV & 0b00000111);// Sample Rate division
+    this->setReg(DLPF_CFG, init_params._DLPF_CFG_& 0b00000111);// DLPF 
+    this->setReg(SMPLRT_DIV, init_params._SMPLRT_DIV_ & 0b00000111);// Sample Rate division
 
     if (init_params.use_INT){
         this->setReg(INT_ENABLE, 0b00000001);//Enable data ready interrupt
@@ -97,9 +88,9 @@ void MPU6050::readAccel(Vec3_t& accel_vec){
     HAL_I2C_Mem_Read(this->_hi2c_, this->_address_, ACCEL_OUT, I2C_MEMADD_SIZE_8BIT,
         rawdata, sizeof(rawdata), HAL_MAX_DELAY);
 
-    accel_vec.x = (float)(int16_t)((rawdata[0] << 8) | rawdata[1]) * this->AccelFactor - this->offset.accel.x;
-    accel_vec.y = (float)(int16_t)((rawdata[2] << 8) | rawdata[3]) * this->AccelFactor - this->offset.accel.y;
-    accel_vec.z = (float)(int16_t)((rawdata[4] << 8) | rawdata[5]) * this->AccelFactor - this->offset.accel.z;
+    accel_vec.x = (float)(int16_t)((rawdata[0] << 8) | rawdata[1]) * this->AccelFactor - this->calibration.accel.x;
+    accel_vec.y = (float)(int16_t)((rawdata[2] << 8) | rawdata[3]) * this->AccelFactor - this->calibration.accel.y;
+    accel_vec.z = (float)(int16_t)((rawdata[4] << 8) | rawdata[5]) * this->AccelFactor - this->calibration.accel.z;
 }
 
 void MPU6050::readGyro(Vec3_t& gyro_vec){
@@ -108,9 +99,9 @@ void MPU6050::readGyro(Vec3_t& gyro_vec){
     HAL_I2C_Mem_Read(this->_hi2c_, this->_address_, GYRO_OUT, I2C_MEMADD_SIZE_8BIT,
         rawdata, sizeof(rawdata), HAL_MAX_DELAY);
 
-    gyro_vec.x = ((float)(int16_t)((rawdata[0] << 8) | rawdata[1]) * this->GyroFactor) - this->offset.gyro.x;
-    gyro_vec.y = ((float)(int16_t)((rawdata[2] << 8) | rawdata[3]) * this->GyroFactor) - this->offset.gyro.y;
-    gyro_vec.z = ((float)(int16_t)((rawdata[4] << 8) | rawdata[5]) * this->GyroFactor) - this->offset.gyro.z;
+    gyro_vec.x = ((float)(int16_t)((rawdata[0] << 8) | rawdata[1]) * this->GyroFactor) - this->calibration.gyro.x;
+    gyro_vec.y = ((float)(int16_t)((rawdata[2] << 8) | rawdata[3]) * this->GyroFactor) - this->calibration.gyro.y;
+    gyro_vec.z = ((float)(int16_t)((rawdata[4] << 8) | rawdata[5]) * this->GyroFactor) - this->calibration.gyro.z;
 }
 
 void MPU6050::readAccelGyro(Vec3_t& accel_vec, Vec3_t& gyro_vec){
@@ -119,13 +110,13 @@ void MPU6050::readAccelGyro(Vec3_t& accel_vec, Vec3_t& gyro_vec){
     HAL_I2C_Mem_Read(this->_hi2c_, this->_address_, ACCEL_OUT, I2C_MEMADD_SIZE_8BIT,
         rawdata, sizeof(rawdata), HAL_MAX_DELAY);
 
-    accel_vec.x = (float)(int16_t)((rawdata[0] << 8) | rawdata[1]) * this->AccelFactor - this->offset.accel.x;
-    accel_vec.y = (float)(int16_t)((rawdata[2] << 8) | rawdata[3]) * this->AccelFactor - this->offset.accel.y;
-    accel_vec.z = (float)(int16_t)((rawdata[4] << 8) | rawdata[5]) * this->AccelFactor - this->offset.accel.z;
+    accel_vec.x = (float)(int16_t)((rawdata[0] << 8) | rawdata[1]) * this->AccelFactor - this->calibration.accel.x;
+    accel_vec.y = (float)(int16_t)((rawdata[2] << 8) | rawdata[3]) * this->AccelFactor - this->calibration.accel.y;
+    accel_vec.z = (float)(int16_t)((rawdata[4] << 8) | rawdata[5]) * this->AccelFactor - this->calibration.accel.z;
 
-    gyro_vec.x = ((float)(int16_t)((rawdata[8] << 8) | rawdata[9]) * this->GyroFactor) - this->offset.gyro.x;
-    gyro_vec.y = ((float)(int16_t)((rawdata[10] << 8) | rawdata[11]) * this->GyroFactor) - this->offset.gyro.y;
-    gyro_vec.z = ((float)(int16_t)((rawdata[12] << 8) | rawdata[13]) * this->GyroFactor) - this->offset.gyro.z;
+    gyro_vec.x = ((float)(int16_t)((rawdata[8] << 8) | rawdata[9]) * this->GyroFactor) - this->calibration.gyro.x;
+    gyro_vec.y = ((float)(int16_t)((rawdata[10] << 8) | rawdata[11]) * this->GyroFactor) - this->calibration.gyro.y;
+    gyro_vec.z = ((float)(int16_t)((rawdata[12] << 8) | rawdata[13]) * this->GyroFactor) - this->calibration.gyro.z;
 }
 
 void MPU6050::readAccelGyro_IT_start(uint8_t *buffer){
@@ -134,13 +125,13 @@ void MPU6050::readAccelGyro_IT_start(uint8_t *buffer){
 }
 
 void MPU6050::readAccelGyro_IT_cplt_handler(uint8_t *rawdata, Vec3_t& accel_vec, Vec3_t& gyro_vec){
-    accel_vec.x = (float)(int16_t)((rawdata[0] << 8) | rawdata[1]) * this->AccelFactor - this->offset.accel.x;
-    accel_vec.y = (float)(int16_t)((rawdata[2] << 8) | rawdata[3]) * this->AccelFactor - this->offset.accel.y;
-    accel_vec.z = (float)(int16_t)((rawdata[4] << 8) | rawdata[5]) * this->AccelFactor - this->offset.accel.z;
+    accel_vec.x = (float)(int16_t)((rawdata[0] << 8) | rawdata[1]) * this->AccelFactor - this->calibration.accel.x;
+    accel_vec.y = (float)(int16_t)((rawdata[2] << 8) | rawdata[3]) * this->AccelFactor - this->calibration.accel.y;
+    accel_vec.z = (float)(int16_t)((rawdata[4] << 8) | rawdata[5]) * this->AccelFactor - this->calibration.accel.z;
 
-    gyro_vec.x = ((float)(int16_t)((rawdata[8] << 8) | rawdata[9]) * this->GyroFactor) - this->offset.gyro.x;
-    gyro_vec.y = ((float)(int16_t)((rawdata[10] << 8) | rawdata[11]) * this->GyroFactor) - this->offset.gyro.y;
-    gyro_vec.z = ((float)(int16_t)((rawdata[12] << 8) | rawdata[13]) * this->GyroFactor) - this->offset.gyro.z;
+    gyro_vec.x = ((float)(int16_t)((rawdata[8] << 8) | rawdata[9]) * this->GyroFactor) - this->calibration.gyro.x;
+    gyro_vec.y = ((float)(int16_t)((rawdata[10] << 8) | rawdata[11]) * this->GyroFactor) - this->calibration.gyro.y;
+    gyro_vec.z = ((float)(int16_t)((rawdata[12] << 8) | rawdata[13]) * this->GyroFactor) - this->calibration.gyro.z;
 }
 
 

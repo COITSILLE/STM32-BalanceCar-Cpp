@@ -1,5 +1,7 @@
+/** 
+ * @brief fast math functions for float type, using some approximations and look-up tables.
+*/
 #include "smath.h"
-
 
 float s_inv_sqrt(float x){
     long i;  
@@ -54,7 +56,7 @@ float s_sin(float x){
     }
     x = x > HALF_PI? (PI - x) : x;
 
-    float idx_float = x * 10.0f;  // 每0.1弧度一个点
+    float idx_float = x * 10.0f;
     int idx_low = (int)idx_float;
     int idx_high = idx_low + 1;
     
@@ -62,7 +64,7 @@ float s_sin(float x){
         return sign * 1.0f;  // sin(π/2) = 1
     }
     
-    float t = idx_float - idx_low;  // 插值因子 [0,1)
+    float t = idx_float - idx_low;
     
     // 线性插值
     float y = sin_table_rad[idx_low] * (1.0f - t) + sin_table_rad[idx_high] * t;

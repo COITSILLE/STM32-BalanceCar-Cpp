@@ -193,7 +193,9 @@ uint32_t s_ftoa(const float num, char *str, uint8_t precision){
     *ptr = '\0';
     return ip_len + precision_copy + (sign ? 1 : 0) + 1;
 }
-
+/**
+ * @brief Join an array of floats into a string with specified delimiter and precision. This is to avoid using printf_float libs which is too large.
+ */
 void s_joinf(char *str, const char delim, const float *args, uint16_t argc, uint8_t precision){
     char *ptr = str;
     if (ptr == NULL) return;

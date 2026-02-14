@@ -22,23 +22,41 @@ public:
     void init(_InitParams_ params){static_cast<Sensor_i*>(this)->init(params);};
     void readAccel(Vec3_t& accel_vec) {static_cast<Sensor_i*>(this)->readAccel(accel_vec);};
     void readGyro(Vec3_t& gyro_vec) {static_cast<Sensor_i*>(this)->readGyro(gyro_vec);};
-    void readAccelGyro(Vec3_t& accel_vec, Vec3_t& gyro_vec) {static_cast<Sensor_i*>(this)->readAccelGyro(accel_vec, gyro_vec);};
+    /**
+     * @brief Get the Euler angles using complementary filter
+     * @param accel_vec Accelerometer data
+     * @param gyro_vec Gyroscope data
+     * @param k filter coefficient (default 0.95)
+     * @return Vec3_t Euler angles (roll, pitch, yaw)
+     * @attention This function is expected to be run at a constant rate. It is recommended to use the data ready interrupt to call this function.
+     */
     Vec3_t getEulerAngles(Vec3_t& accel_vec, Vec3_t& gyro_vec, float k = 0.95);
-    void getOffset(float sample_times, float expected_g);
+    /**
+     * @brief Calculate calibration values for accelerometer and gyroscope
+     * @param sample_times Number of samples to take for averaging
+     * @param expected_g Expected gravity value (typically 9.8 m/s²)
+     * @attention DO NOT run this function while the sensor is moving
+     */
+    void calibrate(float sample_times, float expected_g);
+    /**
+     * @brief Calibrate gyroscope Z-axis only
+     * @param sample_times Number of samples to take for averaging
+     */
     void calibrateZ(float sample_times);
-    void setOffset(Vec3_t accel_offset, Vec3_t gyro_offset);
-    Vec3_t getOffsetAccel() const { return this->offset.accel; }
-    Vec3_t getOffsetGyro() const { return this->offset.gyro; }
+
+    void setCalibration(Vec3_t accel_calibration, Vec3_t gyro_calibration);
+    Vec3_t getCalibrationAccel() const { return this->calibration.accel; }
+    Vec3_t getCalibrationGyro() const { return this->calibration.gyro; }
     //TODO： Magnetometer support
 protected:
     Vec3_t last_euler_angles = {0.0f, 0.0f, 0.0f};
     struct{
         Vec3_t accel;
         Vec3_t gyro;
-    } offset;
+    } calibration;
     struct{
         float g = 9.8f;
-        float call_period;
+        float sampling_period;
     } params;
 };
 

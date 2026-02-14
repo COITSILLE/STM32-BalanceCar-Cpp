@@ -1,10 +1,5 @@
 #include "encoder.h"
 
-/**
- * @brief  Initialize the encoder used to measure the speeds of 2 motors, without CubeMX
- * @param encoder: pointer to the encoder struct
- * @attention it is designed that (in stm32f10x) only GPIO_Pin_0 ~ GPIO_PIN_5 are supported to be 
-*/
 MotorEncoder::MotorEncoder(float GEAR_RATIO, uint8_t UNIT_RING, uint8_t EDGE_PER_PERIOD) : 
 GEAR_RATIO(GEAR_RATIO), UNIT_RING(UNIT_RING), EDGE_PER_PERIOD(EDGE_PER_PERIOD)
 {

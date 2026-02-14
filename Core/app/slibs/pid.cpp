@@ -10,12 +10,12 @@ PID::PID(){
     this->_MaxOutput_ = 0.0;
     this->_MinOutput_ = 0.0;
     this->_KiLimit_ = 0.0;
-    this->_SP_ = 0.0;
+    this->_sp_ = 0.0;
 }
 
 #define assert_num(x) x == x ? x : 0
-void PID::setSP(float sp){
-    this->_SP_ = assert_num(sp);
+void PID::setTarget(float sp){
+    this->_sp_ = assert_num(sp);
 }
 
 void PID::setFactors(float kp, float ki, float kd){
@@ -35,14 +35,11 @@ void PID::setLimit(float max_output, float min_output, float ki_limit){
     this->_KiLimit_ = assert_num(ki_limit);
 }
 
-/**
- *@param FB value from the sensor
- *@param CO Output of PID
-*/
-float PID::getCO(float FB){
+
+float PID::getOutput(float fb){
     DWT_Timestamp time_now = getTick();
     float dt = getDistance(last_time, time_now) * 1.0e-6;
-    float err = this->_SP_ - FB;
+    float err = this->_sp_ - fb;
 
     float err_i = this->last_err_i + (err + this->last_err) * dt * 0.5;
     float err_d = (err - this->last_err) / dt;
@@ -65,21 +62,16 @@ float PID::getCO(float FB){
     return result;
 }
 
-/**
- * @brief Replace the error_d with the one passed in. Only useful when SP is 0 and doesn't change, and using
-        the normal GetCO function may cause differentiating an integrated value, which causes noise.
- * @attention Normally the err_d passed in, say "theta", since error equals SP - FB, should be "-theta"
-*/
-float PID::getCO(float FB, float FB_d){
+float PID::getOutput(float fb, float fb_d){
     DWT_Timestamp time_now = getTick();
     float dt = getDistance(last_time, time_now) * 1.0e-6;
-    float err = this->_SP_ - FB;
+    float err = this->_sp_ - fb;
 
     static float last_SP_d = 0.0;
-    float SP_d = this->_SP_ - last_SP_d / dt;
-    last_SP_d = this->_SP_;
+    float SP_d = this->_sp_ - last_SP_d / dt;
+    last_SP_d = this->_sp_;
 
-    float err_d = SP_d - FB_d;
+    float err_d = SP_d - fb_d;
     float err_i = this->last_err_i + (err + this->last_err) * dt * 0.5;
     
     if (err_i > this->_KiLimit_ || err_i < -this->_KiLimit_){

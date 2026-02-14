@@ -13,12 +13,12 @@ extern "C" {
 
 //from end distribute
 typedef enum {
-    PAGE0 = 0,  /* 最后一页 */
-    PAGE1 = 1,      /* 倒数第 2 页 */
-    PAGE2 = 2,      /* 倒数第 3 页 */
-    PAGE3 = 3,      /* 倒数第 4 页 */
-    PAGE4 = 4,      /* 倒数第 5 页 */
-    PAGE5 = 5,      /* 倒数第 6 页 */
+    PAGE0 = 0,
+    PAGE1 = 1,
+    PAGE2 = 2,
+    PAGE3 = 3,
+    PAGE4 = 4, 
+    PAGE5 = 5,
     FLASH_PAGE_MAX = PAGE5
     //this can be extended
 } FLASHAddrs;
@@ -29,6 +29,8 @@ static inline uint32_t FLASH_GET_PAGE_ADDR(FLASHAddrs page) {
 
 int Flash_WriteType(void *data, uint8_t type_size, uint16_t len, FLASHAddrs addr);
 int Flash_ReadType(void *data, uint8_t type_size, uint16_t len, FLASHAddrs addr);
+
+// Generic
 #ifdef __cplusplus
 } /* End extern "C"*/
 

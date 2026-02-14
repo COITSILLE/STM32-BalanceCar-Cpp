@@ -7,7 +7,6 @@ PWM::PWM(TIM_HandleTypeDef *PWMTIM, int Channel, int UNIT_FREQ, int APB1_FREQ)
   PWM_TIM(PWMTIM),
   Channel(Channel)
 {
-
 }
 void PWM::init(int pwm_freq){
     if (pwm_freq <= 0 || pwm_freq > this->UNIT_FREQ || this->APB1_FREQ % this->UNIT_FREQ != 0){
