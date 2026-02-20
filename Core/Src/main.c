@@ -28,7 +28,6 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "fpu.h"
-#include "cpp_wrapper.h"
 #include "app_main.h"
 /* USER CODE END Includes */
 

@@ -212,7 +212,7 @@ void loop() {
     Task_key1(10);            // 10ms: 模式切换按键扫描
     Task_key_imuoffset(10);   // 10ms: IMU校准按键扫描
     Task_key_gyrooffset(10);  // 10ms: 陀螺仪Z轴校准按键扫描
-    // Task_UART(10);         // UART数据发送，用于实时调试
+    Task_UART(10);         // UART数据发送，用于实时调试
 
     // 系统监控
     Task_GetBatteryVoltage(5000);  // 5000ms: 电池电压检测
@@ -245,7 +245,7 @@ void Task_GetMotorSpeed(uint8_t runtime) {
     float raw_angvel_r = motor_r_encoder.getAngVelocity();
 
     // 计算平均角速度
-    float raw_angvel = (raw_angvel_r + raw_angvel_l) * 0.50f;
+    raw_angvel = (raw_angvel_r + raw_angvel_l) * 0.50f;
     
     // 计算线速度并补偿车体旋转
     linvel = linvel_filter.get(R_w * raw_angvel - L * Gyro.y);

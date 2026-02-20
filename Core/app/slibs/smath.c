@@ -1,8 +1,10 @@
 /** 
  * @brief fast math functions for float type, using some approximations and look-up tables.
+ * @attention only for MCUs without FPU(like STM32F103), for MCUs with FPU, use the standard math library instead. It's actually faster.
 */
 #include "smath.h"
 
+#ifndef __FPU_PRESENT
 float s_inv_sqrt(float x){
     long i;  
     float x2, y;  
@@ -23,8 +25,7 @@ float s_sqrt(float x){
     return x * s_inv_sqrt(x);
 }
 
-float s_sin(float x){
-    const float sin_table_rad[] = {
+static const float sin_table_rad[] = {
     0.0f,                                   // sin(0)
     0.09983341664682815230681419841062f,    // sin(0.1)
     0.19866933079506121545941262711889f,    // sin(0.2)
@@ -43,6 +44,9 @@ float s_sin(float x){
     0.99749498660405443094172337114149f,    // sin(1.5)
     0.99957360304150516405189620723992f,    // sin(1.6)
     };
+
+float s_sin(float x){
+    
     if (x < 0){
         while(x < 0) x += TWO_PI;
     }
@@ -61,12 +65,11 @@ float s_sin(float x){
     int idx_high = idx_low + 1;
     
     if (idx_high >= 17) {
-        return sign * 1.0f;  // sin(π/2) = 1
+        return sign;  // sin(π/2) = 1
     }
     
     float t = idx_float - idx_low;
-    
-    // 线性插值
+
     float y = sin_table_rad[idx_low] * (1.0f - t) + sin_table_rad[idx_high] * t;
     
     return sign * y;
@@ -105,3 +108,27 @@ float s_atan2(float y, float x){
     }
     return result;
 }
+
+#else
+// for MCUs with FPU, use the standard math library instead. It's actually faster.
+float s_inv_sqrt(float x){
+    return 1.0f / sqrtf(x);
+}
+
+float s_sqrt(float x){
+    return sqrtf(x);
+}
+
+float s_sin(float x){
+    return sinf(x);
+}
+
+float s_cos(float x){
+    return cosf(x);
+}
+
+float s_tan(float x){
+    return tanf(x);
+}
+
+#endif

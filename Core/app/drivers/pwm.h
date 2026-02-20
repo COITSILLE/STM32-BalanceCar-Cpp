@@ -2,7 +2,7 @@
 #define PWM_H 
 
 #include "main.h"
-#include "tim.h"
+#include "smath.h"
 
 #ifdef __cplusplus
 extern "C" {

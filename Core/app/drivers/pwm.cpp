@@ -19,7 +19,7 @@ void PWM::init(int pwm_freq){
     __HAL_TIM_SET_COMPARE(this->PWM_TIM, this->Channel, 0);
 }
 void PWM::SetDuty(float duty){
-    __HAL_TIM_SET_COMPARE(this->PWM_TIM, this->Channel, (duty * __HAL_TIM_GET_AUTORELOAD(this->PWM_TIM)));
+    __HAL_TIM_SET_COMPARE(this->PWM_TIM, this->Channel, (ROUND(duty * __HAL_TIM_GET_AUTORELOAD(this->PWM_TIM))));
 }
 
 #endif
