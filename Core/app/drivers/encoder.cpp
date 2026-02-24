@@ -39,8 +39,8 @@ float MotorEncoder::getAngVelocity(){
     uint32_t primask = __get_PRIMASK();
     __disable_irq();
     int8_t dir_cpy = this->time_params.dir;
-    DWT_Timestamp t0_cpy = this->time_params.t0;
-    DWT_Timestamp t1_cpy = this->time_params.t1;
+    timestamp_t t0_cpy = this->time_params.t0;
+    timestamp_t t1_cpy = this->time_params.t1;
     __enable_irq();
     __set_PRIMASK(primask);
 

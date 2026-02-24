@@ -49,6 +49,7 @@ public:
     Vec3_t getCalibrationGyro() const { return this->calibration.gyro; }
     //TODO： Magnetometer support
 protected:
+    timestamp_t last_time = 0;
     Vec3_t last_euler_angles = {0.0f, 0.0f, 0.0f};
     struct{
         Vec3_t accel;

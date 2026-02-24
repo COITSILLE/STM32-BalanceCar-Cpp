@@ -119,12 +119,12 @@ void MPU6050::readAccelGyro(Vec3_t& accel_vec, Vec3_t& gyro_vec){
     gyro_vec.z = ((float)(int16_t)((rawdata[12] << 8) | rawdata[13]) * this->GyroFactor) - this->calibration.gyro.z;
 }
 
-void MPU6050::readAccelGyro_IT_start(uint8_t *buffer){
+void MPU6050::readAccelGyro_IT_Start(uint8_t *buffer){
     HAL_I2C_Mem_Read_IT(this->_hi2c_, this->_address_, ACCEL_OUT, I2C_MEMADD_SIZE_8BIT,
         buffer, 14);
 }
 
-void MPU6050::readAccelGyro_IT_cplt_handler(uint8_t *rawdata, Vec3_t& accel_vec, Vec3_t& gyro_vec){
+void MPU6050::readAccelGyro_IT_CpltHandler(uint8_t *rawdata, Vec3_t& accel_vec, Vec3_t& gyro_vec){
     accel_vec.x = (float)(int16_t)((rawdata[0] << 8) | rawdata[1]) * this->AccelFactor - this->calibration.accel.x;
     accel_vec.y = (float)(int16_t)((rawdata[2] << 8) | rawdata[3]) * this->AccelFactor - this->calibration.accel.y;
     accel_vec.z = (float)(int16_t)((rawdata[4] << 8) | rawdata[5]) * this->AccelFactor - this->calibration.accel.z;

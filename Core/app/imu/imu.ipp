@@ -8,9 +8,11 @@
 
 template<typename Sensor_i, typename _InitParams_>
 typename IMU_Base<Sensor_i, _InitParams_>::Vec3_t IMU_Base<Sensor_i, _InitParams_>::getEulerAngles(Vec3_t& accel_vec, Vec3_t& gyro_vec, float k){
-    static DWT_Timestamp lastTime = getTick();
-    DWT_Timestamp time_now = getTick();
-    float dt = getDistance(lastTime, time_now) * 1.0e-6;
+    timestamp_t time_now = getTick();
+    float dt = 0.0f;
+    if (this->last_time != 0) {
+        dt = getDistance(this->last_time, time_now) * 1.0e-6f;
+    }
     //From Accel
     float roll_accel = s_atan2(accel_vec.y, accel_vec.z);
     float pitch_accel = - s_atan2(accel_vec.x, s_sqrt(accel_vec.z * accel_vec.z + accel_vec.y * accel_vec.y));
@@ -23,7 +25,7 @@ typename IMU_Base<Sensor_i, _InitParams_>::Vec3_t IMU_Base<Sensor_i, _InitParams
     this->last_euler_angles.y = k * pitch_gyro + (1 - k) * pitch_accel;
     this->last_euler_angles.z = yaw_gyro;
 
-    lastTime = time_now;
+    this->last_time = time_now;
 
     return {this->last_euler_angles.x, this->last_euler_angles.y, this->last_euler_angles.z};
 

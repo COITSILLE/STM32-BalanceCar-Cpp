@@ -40,8 +40,8 @@ public:
     void readGyro(Vec3_t& gyro_vec);
 
     void readAccelGyro(Vec3_t& accel_vec, Vec3_t& gyro_vec);
-    void readAccelGyro_IT_start(uint8_t *buffer);
-    void readAccelGyro_IT_cplt_handler(uint8_t *buffer, Vec3_t& accel_vec, Vec3_t& gyro_vec);
+    void readAccelGyro_IT_Start(uint8_t *buffer);
+    void readAccelGyro_IT_CpltHandler(uint8_t *buffer, Vec3_t& accel_vec, Vec3_t& gyro_vec);
 private:
     I2C_HandleTypeDef *_hi2c_;
     const uint16_t _address_;

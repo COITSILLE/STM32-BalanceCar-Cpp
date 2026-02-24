@@ -36,7 +36,8 @@ uint16_t adc_voltages[2];  // ADC采样值 [0]:内部参考电压 [1]:电池电�
 float bat_voltage;         // 电池电压 (V)
 
 // 控制输出变量
-float exp_voltage;      // 期望输出电压 (V)
+float exp_voltage_t;      // 期望输出电压 (V)
+float exp_voltage_v;      // 速度控制电压 (V)
 float exp_voltage_rot;  // 转向控制电压 (V)
 
 // IMU传感器数据
@@ -79,7 +80,7 @@ PWM motor_r_pwm(&htim3, TIM_CHANNEL_1, 36000000);  // 右电机PWM
 TB6612_Motor motor_l(motor_l_pwm);  // 左电机
 TB6612_Motor motor_r(motor_r_pwm);  // 右电机
 
-// 编码器对象 (减速比20.049, 霍尔13线, 双边沿2)
+// 编码器对象 (减速比20.049, 霍尔13线, 双边沿)
 MotorEncoder motor_l_encoder(20.049, 13, 2);  // 左轮编码器
 MotorEncoder motor_r_encoder(20.049, 13, 2);  // 右轮编码器
 
@@ -92,8 +93,8 @@ PID rotate_pid;    // 转向环PID
 SSD1306_I2C oled(&hi2c1);
 
 // 滤波器对象
-FirstOrderFilter linvel_filter(0.35);                  // 线速度一阶滤波器 (截止频率系数0.35)
-AdaptiveFirstOrderFilter voltage_filter(0.08, 1, 0.92); // 电池电压自适应滤波器 (alpha=0.08, 容差=1V, alpha增量=0.92)
+FirstOrderFilter linvel_filter(0.35);
+AdaptiveFirstOrderFilter voltage_filter(0.08, 1, 0.92); 
 
 // ==================== 主初始化函数 ====================
 
@@ -110,7 +111,7 @@ void app_main() {
         .use_INT = 1         // 使能数据就绪中断
     });
     
-    // 从Flash读取IMU零偏数据
+    // 从Flash读取IMU校准数据
     float offsets_data[6];
     Flash_Read(offsets_data, 6, PAGE0);
     imu.setCalibration(
@@ -165,14 +166,14 @@ void app_main() {
     float velocity_pid_factors[6];
     Flash_Read(velocity_pid_factors, 6, PAGE2);
     velocity_pid.setFactors(velocity_pid_factors[0], velocity_pid_factors[1], velocity_pid_factors[2]);
-    velocity_pid.setTarget(0);  // 设定值为0 m/s（静止）
+    velocity_pid.setTarget(0);  // 设定值为0 m/s
     velocity_pid.setLimit(velocity_pid_factors[3], velocity_pid_factors[4], velocity_pid_factors[5]);
 
     // 转向环PID (从Flash读取)
     float rotate_pid_factors[6];
     Flash_Read(rotate_pid_factors, 6, PAGE4);
     rotate_pid.setFactors(rotate_pid_factors[0], rotate_pid_factors[1], rotate_pid_factors[2]);
-    rotate_pid.setTarget(0);  // 设定值为0 rad/s（不旋转）
+    rotate_pid.setTarget(0);  // 设定值为0 rad/s
     rotate_pid.setLimit(rotate_pid_factors[3], rotate_pid_factors[4], rotate_pid_factors[5]);
 
     // ---------- OLED初始化 ----------
@@ -201,14 +202,14 @@ void loop() {
     Task_GetMotorSpeed(5);    // 5ms: 编码器速度读取
 
     // PID控制计算
-    Task_PIDv(20);            // 20ms: 速度环PID
+    Task_PIDv(40);            // 40ms: 速度环PID
     Task_PIDt(5);             // 5ms: 角度环PID（直立控制）
     Task_PIDr(5);             // 5ms: 旋转环PID（转向控制）
 
     // 电机输出
-    Task_UpdateMotor(6);      // 6ms: 更新电机PWM输出
+    Task_UpdateMotor(5);      // 5ms: 更新电机PWM输出
 
-    // 人机交互
+    // 调试
     Task_key1(10);            // 10ms: 模式切换按键扫描
     Task_key_imuoffset(10);   // 10ms: IMU校准按键扫描
     Task_key_gyrooffset(10);  // 10ms: 陀螺仪Z轴校准按键扫描
@@ -230,7 +231,7 @@ void Task_IMU(uint8_t runtime) {
     if (imu_ready_flag && imu_cplt_flag) {
         imu_ready_flag = 0;
         imu_cplt_flag = 0;
-        imu.readAccelGyro_IT_start(imu_buffer);
+        imu.readAccelGyro_IT_Start(imu_buffer);
     }
 }
 
@@ -260,7 +261,7 @@ void Task_PIDt(uint8_t runtime) {
     NON_BLOCK_DELAY(runtime);
 
     // 计算期望电压输出
-    exp_voltage = -theta_pid.getOutput(EurAngs.y, Gyro.y);
+    exp_voltage_t = -theta_pid.getOutput_DiffAhead(EurAngs.y, Gyro.y);
 }
 
 /**
@@ -269,9 +270,8 @@ void Task_PIDt(uint8_t runtime) {
 void Task_PIDv(uint8_t runtime) {
     NON_BLOCK_DELAY(runtime);
 
-    // 速度环输出作为角度环的设定值（串级控制）
-    // arctan(a/g) 将速度误差转换为期望倾角
-    theta_pid.setTarget(-s_atan(velocity_pid.getOutput(linvel) / g));
+    // 计算期望电压输出
+    exp_voltage_v = velocity_pid.getOutput(linvel);
 }
 
 /**
@@ -293,8 +293,8 @@ void Task_UpdateMotor(uint8_t runtime)  {
     NON_BLOCK_DELAY(runtime);
     
     // 差速控制：左右轮电压 = 直立电压 ± 旋转电压
-    float exp_voltage_l = exp_voltage + exp_voltage_rot;  // 左轮期望电压
-    float exp_voltage_r = exp_voltage - exp_voltage_rot;  // 右轮期望电压
+    float exp_voltage_l = exp_voltage_t - exp_voltage_v + exp_voltage_rot;  // 左轮期望电压
+    float exp_voltage_r = exp_voltage_t - exp_voltage_v - exp_voltage_rot;  // 右轮期望电压
 
     // 根据电压正负设置电机方向
     if (exp_voltage_l < 0) {
@@ -335,10 +335,10 @@ void Task_GetBatteryVoltage(uint16_t runtime){
 void Task_UART(uint16_t runtime){
     NON_BLOCK_DELAY(runtime);
     if ((!(debug_mode)) && uart_flag){
-        msg.ch[0] = exp_voltage;
+        msg.ch[0] = exp_voltage_t; // 发送总期望电压，便于调试观察
         msg.ch[1] = linvel;
         msg.ch[2] = EurAngs.y;
-        msg.ch[3] = theta_pid.sp();
+        msg.ch[3] = exp_voltage_v;
         msg.ch[4] = Gyro.y;
         msg.ch[5] = raw_angvel;
         HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&msg, sizeof(msg));
@@ -355,7 +355,7 @@ void Task_OLED(uint16_t runtime){
     if (debug_mode){
         oled.clear();
         char digit_msg[16] = "\0";
-        float args[3] = {exp_voltage, EurAngs.y, bat_voltage};
+        float args[3] = {exp_voltage_t + exp_voltage_v, EurAngs.y, bat_voltage};
         s_joinf(digit_msg, ',', args, 3, 2);
         sprintf(oled_msg, "%d,%s", debug_mode, digit_msg);
         oled.setString(oled_msg, {0, 40}, ascii12, 10, 10);
@@ -585,12 +585,12 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)  {
                 case CMD_LIMITT:
                 {
                     float paramst[6] = {
-                        theta_pid.K_p(),       // Kp
-                        theta_pid.K_i(),       // Ki
-                        theta_pid.K_d(),       // Kd
-                        theta_pid.MaxOutput(), // 最大输出
-                        theta_pid.MinOutput(), // 最小输出
-                        theta_pid.KiLimit()    // 积分限幅
+                        theta_pid.kp,       // Kp
+                        theta_pid.ki,       // Ki
+                        theta_pid.kd,       // Kd
+                        theta_pid.max_output, // 最大输出
+                        theta_pid.min_output, // 最小输出
+                        theta_pid.ki_limit    // 积分限幅
                     };
                     Flash_Write(paramst, 6, PAGE1);
                     char digit_msg[40] = "\0";
@@ -604,12 +604,12 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)  {
                 case CMD_LIMITV:
                 {
                     float paramsv[6] = {
-                        velocity_pid.K_p(),
-                        velocity_pid.K_i(),
-                        velocity_pid.K_d(),
-                        velocity_pid.MaxOutput(),
-                        velocity_pid.MinOutput(),
-                        velocity_pid.KiLimit()
+                        velocity_pid.kp,
+                        velocity_pid.ki,
+                        velocity_pid.kd,
+                        velocity_pid.max_output,
+                        velocity_pid.min_output,
+                        velocity_pid.ki_limit
                     };
                     Flash_Write(paramsv, 6, PAGE2);
                     char digit_msg[40] = "\0";
@@ -623,12 +623,12 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)  {
                 case CMD_LIMITR:
                 {
                     float paramsr[6] = {
-                        rotate_pid.K_p(),
-                        rotate_pid.K_i(),
-                        rotate_pid.K_d(),
-                        rotate_pid.MaxOutput(),
-                        rotate_pid.MinOutput(),
-                        rotate_pid.KiLimit()
+                        rotate_pid.kp,
+                        rotate_pid.ki,
+                        rotate_pid.kd,
+                        rotate_pid.max_output,
+                        rotate_pid.min_output,
+                        rotate_pid.ki_limit
                     };
                     Flash_Write(paramsr, 6, PAGE4);
                     char digit_msg[40] = "\0";
@@ -696,7 +696,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 void HAL_I2C_MemRxCpltCallback(I2C_HandleTypeDef *hi2c) {
     if (hi2c == &hi2c1) {
         // 处理IMU数据
-        imu.readAccelGyro_IT_cplt_handler(imu_buffer, Accel, Gyro);
+        imu.readAccelGyro_IT_CpltHandler(imu_buffer, Accel, Gyro);
         
         // 计算欧拉角
         EurAngs = imu.getEulerAngles(Accel, Gyro);

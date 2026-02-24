@@ -59,8 +59,8 @@ private:
         uint16_t PhraseB_Pin;
     } gpio_params;
     struct{
-        DWT_Timestamp t0 = {0};
-        DWT_Timestamp t1 = {UINT32_MAX, UINT32_MAX};
+        timestamp_t t0 = 0;
+        timestamp_t t1 = UINT64_MAX;
 
         uint32_t dt;
         int8_t dir;
