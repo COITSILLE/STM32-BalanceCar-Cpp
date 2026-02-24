@@ -109,29 +109,29 @@ STM32F302平衡小车。C和C++混合编写，基于HAL库
   我们看串级下两个环的PID计算公式：  
   直立环：
 
-  $$
+ ```math
   u_\theta = K_{p1} \cdot (\theta - \theta_{ref}) + K_d \cdot \frac{d(\theta - \theta_{ref})}{dt}
-  $$
+ ```
 
   速度环：
 
-  $$
+ ```math
   	heta_{ref} = K_{p2} \cdot (v - v_{ref}) + K_i \cdot \int (v - v_{ref}) \, dt
-  $$
+ ```
 
   将 $\theta_{ref}$ 代入并整理：
 
-  $$
+ ```math
   u_\theta = K_{p1} \cdot \theta + K_d \cdot \frac{d(\theta)}{dt} - \left[ (K_{p2} - K_i \cdot K_d)(v - v_{ref}) + K_i \cdot \int (v - v_{ref}) \, dt \right] - K_d \cdot K_{p2} \frac{d(v - v_{ref})}{dt}
-  $$
+ ```
 
   $v$是线速度，理论上平衡时和匀速运动时都为定值，故近似忽略 $\frac{d(v - v_{ref})}{dt}$，则可写成两个并级叠加的形式：
 
-  $$
+ ```math
   u_\theta = \underbrace{K_{p1} \cdot \theta + K_d \cdot \frac{d(\theta)}{dt}}_{直立环} - \underbrace{\left[ (K_{p2} - K_i \cdot K_d)(v - v_{ref}) + K_i \cdot \int (v - v_{ref}) \, dt \right]}_{速度环}
-  $$
+ ```
 - 
-  这样拆成两个并级叠加，最大的好处是神奇地避免了会引入噪声的离散微分（ $\frac{d(\theta)}{dt}$ 显然是角速度，可以直接用IMU给出的实时数据，注意$\theta$是离散积分的结果，若真的对离散积分结果离散微分，后果不堪设想）。见`Core/app/slibs/pid.cpp`的`getOutput_DiffAhead`函数，允许直接传入反馈的微分值
+  这样拆成两个并级叠加，最大的好处是神奇地避免了会引入噪声的离散微分（ $\frac{d(\theta)}{dt}$ 显然是角速度，可以直接用IMU给出的实时数据，注意 ${\theta}$ 是离散积分的结果，若真的对离散积分结果离散微分，后果不堪设想）。见`Core/app/slibs/pid.cpp`的`getOutput_DiffAhead`函数，允许直接传入反馈的微分值
   
 ### 关于PWM
   单从MCU角度看，控制电机的精度由定时器通道的自动重装载寄存器（ARR）的值大小决定。ARR 越大，PWM 分辨率越高，但（时钟频率已固定）PWM 频率会降低。
