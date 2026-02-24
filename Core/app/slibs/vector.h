@@ -18,6 +18,9 @@ typedef struct {
 } Vec3_t;
 #ifdef __cplusplus
 }
+#endif
+
+#ifdef __cplusplus
 static inline Vec2_t operator+(const Vec2_t& a, const Vec2_t& b){
     return {a.x + b.x, a.y + b.y};
 }

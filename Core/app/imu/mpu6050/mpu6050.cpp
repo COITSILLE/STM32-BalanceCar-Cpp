@@ -1,9 +1,5 @@
 #include "mpu6050.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #define PWR_MGMT_1 0x6B
 #define ACCEL_OUT 0x3B
 #define GYRO_OUT 0x43
@@ -12,8 +8,6 @@ extern "C" {
 #define INT_ENABLE 0x38
 #define INT_PIN_CFG 0x37
 
-#ifdef __cplusplus
-}
 void MPU6050::reset(){
     uint8_t cmd[2] = {0x6B, 0b10000000};
     HAL_I2C_Master_Transmit(this->hi2c, this->address, cmd, sizeof(cmd), HAL_MAX_DELAY);
@@ -133,6 +127,3 @@ void MPU6050::readAccelGyro_IT_CpltHandler(uint8_t *rawdata, Vec3_t& accel_vec, 
     gyro_vec.y = ((float)(int16_t)((rawdata[10] << 8) | rawdata[11]) * this->GyroFactor) - this->calibration.gyro.y;
     gyro_vec.z = ((float)(int16_t)((rawdata[12] << 8) | rawdata[13]) * this->GyroFactor) - this->calibration.gyro.z;
 }
-
-
-#endif /* __cplusplus */
