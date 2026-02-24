@@ -1,6 +1,6 @@
 #include "key.h"
 
-#define DEBOUNCE_DURATION 20U
+static const uint8_t DEBOUNCE_DURATION = 20U;
 
 Key::Key(GPIO_TypeDef *GPIOx, uint16_t GPIO_Pin, 
             GPIO_PinState valid_pin_state, KeyEdgeType edge_type, void (*KeyCallback)(void))

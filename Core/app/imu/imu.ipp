@@ -73,7 +73,7 @@ void IMU_Base<Sensor_i, _InitParams_>::calibrateZ(float sample_times){
 }
 
 template<typename Sensor_i, typename _InitParams_>
-void IMU_Base<Sensor_i, _InitParams_>::setCalibration(Vec3_t accel_calibration, Vec3_t gyro_calibration){
+void IMU_Base<Sensor_i, _InitParams_>::setCalibration(const Vec3_t& accel_calibration, const Vec3_t& gyro_calibration){
     this->calibration.accel = accel_calibration;
     this->calibration.gyro = gyro_calibration;
 }

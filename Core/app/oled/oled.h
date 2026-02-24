@@ -1,5 +1,5 @@
-#ifndef INC_OLED_H
-#define INC_OLED_H
+#ifndef OLED_H
+#define OLED_H
 
 #include "font.h"
 #include <stdint.h>
@@ -11,7 +11,7 @@ extern "C" {
 typedef struct{
     uint8_t x;
     uint8_t y;
-}pointer;
+}Pointer;
 
 #ifdef __cplusplus
 }
@@ -23,11 +23,11 @@ public:
     virtual void clear() = 0;
     virtual void showFrame() = 0;
     virtual void setPixel(uint8_t x, uint8_t y, uint8_t state) = 0;
-    virtual void setPicture(uint8_t* picture, uint8_t width, uint8_t height, pointer ptr) = 0;
-    virtual void setChar(char character, pointer ptr, const Font *font) = 0;
-    virtual void setString(const char* string, pointer *ptr, const Font *font,
-        uint8_t rspacing, uint8_t cspacing, bool backpointer = 1) = 0;
-    virtual void setString(const char* string, pointer ptr, const Font *font,
+    virtual void setPicture(uint8_t* picture, uint8_t width, uint8_t height, Pointer ptr) = 0;
+    virtual void setChar(char character, Pointer ptr, const Font *font) = 0;
+    virtual void setString(const char* string, Pointer *ptr, const Font *font,
+        uint8_t rspacing, uint8_t cspacing, bool backPointer = 1) = 0;
+    virtual void setString(const char* string, Pointer ptr, const Font *font,
         uint8_t rspacing, uint8_t cspacing) = 0;
     virtual uint16_t col() const = 0;
     virtual uint8_t page() const = 0;
@@ -35,7 +35,7 @@ protected:
     virtual void sendCmd(uint8_t cmd) = 0;
 };
 
-template<size_t COL, size_t PAGE>
+template<uint16_t COL, uint16_t PAGE>
 class OLED_Algorithms : public OLED {
 protected:
     uint8_t GRAM[PAGE][COL] = {};
@@ -61,8 +61,8 @@ public:
      * @param ptr Position pointer for the top-left corner of the bitmap
      * @note The bitmap data is stored in row-major order where each byte represents 8 horizontal pixels
      */
-    void setPicture(uint8_t* picture, uint8_t width, uint8_t height, pointer ptr) override;
-    void setChar(char character, pointer ptr, const Font *font) override;
+    void setPicture(uint8_t* picture, uint8_t width, uint8_t height, Pointer ptr) override;
+    void setChar(char character, Pointer ptr, const Font *font) override;
     /**
      * @brief Set a string on the OLED screen with pointer tracking
      * @param string String to display (ASCII characters + '\n' for newline)
@@ -73,7 +73,7 @@ public:
      * @param backpointer If true (default), returns pointer to original position after operation
      * @attention String must consist of ASCII numbers, alphabets, symbols, spaces; only '\n' is supported for newline
      */
-    void setString(const char* string, pointer *ptr, const Font *font,
+    void setString(const char* string, Pointer *ptr, const Font *font,
         uint8_t rspacing, uint8_t cspacing, bool backpointer = 1) override;
         /**
      * @brief Set a string on the OLED screen with pointer tracking
@@ -84,7 +84,7 @@ public:
      * @param cspacing Vertical spacing between lines
      * @attention String must consist of ASCII numbers, alphabets, symbols, spaces; only '\n' is supported for newline
      */
-    void setString(const char* string, pointer ptr, const Font *font,
+    void setString(const char* string, Pointer ptr, const Font *font,
         uint8_t rspacing, uint8_t cspacing) override;
     
     uint16_t col() const override { return COL; }
@@ -97,4 +97,4 @@ public:
 
 #endif /* __cplusplus */
 
-#endif /* INC_OLED_H_ */
+#endif /* OLED_H */

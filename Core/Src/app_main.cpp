@@ -58,7 +58,8 @@ const uint8_t tail[4] = {0x00, 0x00, 0x80, 0x7f};  // （给字面量）数据�
 volatile bool debug_mode = 1;       // 调试模式标志（1:调试 0:运行）
 volatile bool oled_flag = 1;        // OLED显示更新标志
 volatile bool uart_flag = 1;        // UART发送完成标志
-volatile bool imu_ready_flag = 0;   // IMU数据就绪标志（来自外部中断）
+volatile bool info_flag = 0;        // 发送调试信息标志
+volatile bool imu_ready_flag = 1;   // IMU数据就绪标志（来自外部中断）
 volatile bool imu_cplt_flag = 1;    // IMU数据读取完成标志
 
 // ==================== 对象实例化 ====================
@@ -298,15 +299,15 @@ void Task_UpdateMotor(uint8_t runtime)  {
 
     // 根据电压正负设置电机方向
     if (exp_voltage_l < 0) {
-        motor_l.setControl(MOTOR_BACKWARD);  // 左轮后退
+        motor_l.setControl(BACKWARD);  // 左轮后退
     } else {
-        motor_l.setControl(MOTOR_FORWARD);   // 左轮前进
+        motor_l.setControl(FORWARD);   // 左轮前进
     }
 
     if (exp_voltage_r < 0) {
-        motor_r.setControl(MOTOR_BACKWARD);  // 右轮后退
+        motor_r.setControl(BACKWARD);  // 右轮后退
     } else {
-        motor_r.setControl(MOTOR_FORWARD);   // 右轮前进
+        motor_r.setControl(FORWARD);   // 右轮前进
     }
 
     // 计算PWM占空比
@@ -334,7 +335,7 @@ void Task_GetBatteryVoltage(uint16_t runtime){
  */
 void Task_UART(uint16_t runtime){
     NON_BLOCK_DELAY(runtime);
-    if ((!(debug_mode)) && uart_flag){
+    if ((!(debug_mode)) && uart_flag && info_flag) {
         msg.ch[0] = exp_voltage_t; // 发送总期望电压，便于调试观察
         msg.ch[1] = linvel;
         msg.ch[2] = EurAngs.y;
@@ -453,7 +454,7 @@ void key_gyrooffset_callback() {
 /**
  * @brief UART接收完成回调函数（处理调试命令、遥控）
  */
-void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)  {
+void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
     if (huart == &huart2) {
         char msg[65];
         memset(msg, 0, sizeof(msg));
@@ -655,6 +656,18 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)  {
             }
             else if (strcmp(cmd, "sp3") == 0) {
                 rotate_pid.setTarget(sp);    // 设置旋转设定值
+            }
+            else if (strcmp(cmd, "info_on") == 0) {
+                info_flag = 1;              // 允许发送调试信息
+            }
+            else if (strcmp(cmd, "info_off") == 0) {
+                info_flag = 0;              // 禁止发送调试信息
+            }
+            else {
+                char error_msg[20];
+                sprintf(error_msg, "%15s", "unknown cmd");
+                HAL_UART_Transmit(&huart2, (uint8_t *)error_msg, sizeof(error_msg), 1000);
+                HAL_UART_Transmit(&huart2, tail, 4, 1000);
             }
             
             memset((uint8_t *)UARTRcvBfr, 0, sizeof(UARTRcvBfr));

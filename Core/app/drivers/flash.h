@@ -4,10 +4,6 @@
 #include "main.h"
 #include <stdint.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #define FLASH_SIZE_REG_VAL_KB (*((uint16_t *)FLASHSIZE_BASE))
 #define FLASH_PAGE_END (FLASH_BASE + (FLASH_SIZE_REG_VAL_KB * 1024U))
 
@@ -21,26 +17,30 @@ typedef enum {
     PAGE5 = 5,
     FLASH_PAGE_MAX = PAGE5
     //this can be extended
-} FLASHAddrs;
+} FlashAddrs;
 
-static inline uint32_t FLASH_GET_PAGE_ADDR(FLASHAddrs page) {
+static inline uint32_t FLASH_GET_PAGE_ADDR(FlashAddrs page) {
     return FLASH_PAGE_END - (uint32_t)(page + 1) * FLASH_PAGE_SIZE;
 }
 
-int Flash_WriteType(void *data, uint8_t type_size, uint16_t len, FLASHAddrs addr);
-int Flash_ReadType(void *data, uint8_t type_size, uint16_t len, FLASHAddrs addr);
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+int Flash_WriteType(void *data, uint8_t type_size, uint16_t len, FlashAddrs addr);
+int Flash_ReadType(void *data, uint8_t type_size, uint16_t len, FlashAddrs addr);
 
 // Generic
 #ifdef __cplusplus
 } /* End extern "C"*/
 
 template <typename T>
-static inline int Flash_Write(T *data, uint16_t len, FLASHAddrs addr) {
+static inline int Flash_Write(T *data, uint16_t len, FlashAddrs addr) {
     return Flash_WriteType((void *)data, sizeof(T), len, addr);
 }
 
 template <typename T>
-static inline int Flash_Read(T *data, uint16_t len, FLASHAddrs addr) {
+static inline int Flash_Read(T *data, uint16_t len, FlashAddrs addr) {
     return Flash_ReadType((void *)data, sizeof(T), len, addr);
 }
 

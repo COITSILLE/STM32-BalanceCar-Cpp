@@ -1,7 +1,7 @@
 #include "tb6612.h"
 
 #ifdef __cplusplus
-void TB6612_Motor::init(TB6612_GPIOParams init_params){
+void TB6612_Motor::init(TB6612GPIOParams init_params){
     this->gpio_params = init_params;
 }
 
@@ -18,21 +18,21 @@ void TB6612_Motor::setDuty(float duty){
     this->pwm.SetDuty(_duty_);
 }
 
-void TB6612_Motor::setControl(MOTOR_STATE state){
+void TB6612_Motor::setControl(MotorState state){
     switch (state) {
-        case MOTOR_BRAKE:
+        case BRAKE:
             HAL_GPIO_WritePin(this->gpio_params.Ctrl1GPIOx, this->gpio_params.Ctrl1Pin, GPIO_PIN_SET);
             HAL_GPIO_WritePin(this->gpio_params.Ctrl2GPIOx, this->gpio_params.Ctrl2Pin, GPIO_PIN_SET);
             break;
-        case MOTOR_FORWARD:
+        case FORWARD:
             HAL_GPIO_WritePin(this->gpio_params.Ctrl1GPIOx, this->gpio_params.Ctrl1Pin, GPIO_PIN_SET);
             HAL_GPIO_WritePin(this->gpio_params.Ctrl2GPIOx, this->gpio_params.Ctrl2Pin, GPIO_PIN_RESET);
             break;
-        case MOTOR_BACKWARD:
+        case BACKWARD:
             HAL_GPIO_WritePin(this->gpio_params.Ctrl1GPIOx, this->gpio_params.Ctrl1Pin, GPIO_PIN_RESET);
             HAL_GPIO_WritePin(this->gpio_params.Ctrl2GPIOx, this->gpio_params.Ctrl2Pin, GPIO_PIN_SET);
             break;
-        case MOTOR_SLIDE:
+        case SLIDE:
             HAL_GPIO_WritePin(this->gpio_params.Ctrl1GPIOx, this->gpio_params.Ctrl1Pin, GPIO_PIN_RESET);
             HAL_GPIO_WritePin(this->gpio_params.Ctrl2GPIOx, this->gpio_params.Ctrl2Pin, GPIO_PIN_RESET);
             break;

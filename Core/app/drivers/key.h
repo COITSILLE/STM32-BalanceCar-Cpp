@@ -17,12 +17,6 @@ typedef enum{
 } KeyEdgeType;
 
 #ifdef __cplusplus
-extern "C" {
-#endif
-
-#ifdef __cplusplus
-}
-
 // C++ 代码放这里
 class Key{
 private:
@@ -38,7 +32,6 @@ public:
         KeyEdgeType edge_type = RISING_EDGE, void (*KeyCallback)(void) = NULL);
     void proc();
 };
-
 #endif
 
 #endif

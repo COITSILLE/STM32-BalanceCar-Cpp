@@ -5,20 +5,12 @@
 #include "dwt_ustime.h"
 #include "smath.h"
 #include <stdint.h>
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#ifdef __cplusplus
-}
-struct MotorEncoder_InitParams{
+struct MotorEncoderInitParams{
     GPIO_TypeDef *PhraseA_GPIOx;
     uint16_t PhraseA_Pin;
 
     GPIO_TypeDef *PhraseB_GPIOx;
     uint16_t PhraseB_Pin;
-
-    
 } ;
 
 class MotorEncoder {
@@ -38,7 +30,7 @@ public:
      * @param init_params.PhraseB_GPIOx GPIO port for Phrase B
      * @param init_params.PhraseB_Pin GPIO pin for Phrase B, only for direction detection
      */
-    void init(MotorEncoder_InitParams init_params);
+    void init(MotorEncoderInitParams init_params);
     /**
      * @brief Get the angular velocity in rad/s
      */
@@ -58,14 +50,12 @@ private:
         GPIO_TypeDef *PhraseB_GPIOx;
         uint16_t PhraseB_Pin;
     } gpio_params;
-    struct{
+    volatile struct{
         timestamp_t t0 = 0;
         timestamp_t t1 = UINT64_MAX;
 
-        uint32_t dt;
-        int8_t dir;
+        uint32_t dt = 0;
+        int8_t dir = 0;
     } time_params;
 };
-#endif /* __cplusplus */
-
 #endif

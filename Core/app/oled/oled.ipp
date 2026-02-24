@@ -15,22 +15,22 @@
  *| 
  *↓ Y
 */
-template<size_t COL, size_t PAGE>
+template<uint16_t COL, uint16_t PAGE>
 void OLED_Algorithms<COL, PAGE>::clear(){
     memset(this->GRAM, 0x00, sizeof(this->GRAM));
 }
 
 //basic edit GRAM functions
-template<size_t COL, size_t PAGE>
+template<uint16_t COL, uint16_t PAGE>
 void OLED_Algorithms<COL, PAGE>::setPixel(uint8_t x, uint8_t y, uint8_t state){
-    if (x < 0 || x >= COL || y < 0 || y >= PAGE * 8 || (state != 0 && state != 1)) {
+    if (x >= COL || y >= PAGE * 8 || (state != 0 && state != 1)) {
         return;
     }
     this->GRAM[y / 8][x] |= (state << (y % 8));
 }
 
-template<size_t COL, size_t PAGE>
-void OLED_Algorithms<COL, PAGE>::setPicture(uint8_t* picture, uint8_t width, uint8_t height, pointer ptr){
+template<uint16_t COL, uint16_t PAGE>
+void OLED_Algorithms<COL, PAGE>::setPicture(uint8_t* picture, uint8_t width, uint8_t height, Pointer ptr){
     uint8_t scale = height * width;
 
     for (uint8_t i = 0; i < scale; i++) {
@@ -46,16 +46,16 @@ void OLED_Algorithms<COL, PAGE>::setPicture(uint8_t* picture, uint8_t width, uin
 }
 
 //complex edit GRAM functions
-template<size_t COL, size_t PAGE>
-void OLED_Algorithms<COL, PAGE>::setChar(char character, pointer ptr, const Font *font){
+template<uint16_t COL, uint16_t PAGE>
+void OLED_Algorithms<COL, PAGE>::setChar(char character, Pointer ptr, const Font *font){
     uint8_t scale = font->height * font->width;
 
     this->setPicture(font->letter + ((uint8_t)character - 32) * scale, 
                     font->width, font->height, ptr);
 }
 
-template<size_t COL, size_t PAGE>
-void OLED_Algorithms<COL, PAGE>::setString(const char* string, pointer *ptr, const Font *font, uint8_t rspacing, uint8_t cspacing, bool backpointer){
+template<uint16_t COL, uint16_t PAGE>
+void OLED_Algorithms<COL, PAGE>::setString(const char* string, Pointer *ptr, const Font *font, uint8_t rspacing, uint8_t cspacing, bool backpointer){
     uint8_t width_r = font->width * 8;
 
     int8_t rspc_offset = width_r - rspacing;
@@ -88,9 +88,9 @@ void OLED_Algorithms<COL, PAGE>::setString(const char* string, pointer *ptr, con
     }
 }
 
-template<size_t COL, size_t PAGE>
-void OLED_Algorithms<COL, PAGE>::setString(const char* string, pointer ptr, const Font *font, uint8_t rspacing, uint8_t cspacing){
-    pointer temp = ptr;
+template<uint16_t COL, uint16_t PAGE>
+void OLED_Algorithms<COL, PAGE>::setString(const char* string, Pointer ptr, const Font *font, uint8_t rspacing, uint8_t cspacing){
+    Pointer temp = ptr;
     this->setString(string, &temp, font, rspacing, cspacing, 0);
 }
 #endif

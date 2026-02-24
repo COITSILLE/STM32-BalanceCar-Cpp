@@ -3,14 +3,6 @@
 
 #include <stdint.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#ifdef __cplusplus
-}
-#endif
-
 #ifdef __FPU_PRESENT
 #include <math.h>
 #endif
@@ -29,6 +21,10 @@ extern "C" {
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define ROUND(x) ((x) >= 0 ? (int)((x) + 0.5f) : (int)((x) - 0.5f))
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 float s_inv_sqrt(float x);
 float s_sqrt(float x);
 float s_sin(float x);
@@ -36,6 +32,10 @@ float s_cos(float x);
 float s_tan(float x);
 float s_atan(float x);
 float s_atan2(float y, float x);
+
+#ifdef __cplusplus
+}
+#endif
 
 
 #endif

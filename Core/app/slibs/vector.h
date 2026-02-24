@@ -1,10 +1,11 @@
 #ifndef __VECTOR_H__
 #define __VECTOR_H__
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-#include <stdint.h>
 typedef struct{
     float x;
     float y;

@@ -28,15 +28,19 @@ public:
     void setLimit(float output_limit, float ki_limit);
     void setLimit(float max_output, float min_output, float ki_limit);
     void setTarget(float sp);
+    float getOutput(float fb);
     /**
-     *@param FB feedback, value from the sensor
-     *@param kd_filter_alpha 0~1,
+     *@param fb feedback
+     *@param tau time constant for the low-pass filter applied to the derivative term, in seconds.
      */
-    float getOutput(float fb, float tau = 0);
+    float getOutput_IncompDiff(float fb, float tau = 0);
+    /**
+     * @brief only take the derivative of the feedback, which is useful when the setpoint is constant (e.g., 0) and differentiating the error may cause noise due to the integral term.
+     */
+    float getOutput_DiffAhead(float fb);
     /**
      * @brief Replace FB_d with the one passed in. Only useful when SP is 0 and doesn't change, and using
         the normal GetOutput function may cause differentiating an integrated value, which causes noise.
-     * @attention Normally the err_d passed in, say "theta", since error equals SP - FB, should be "-theta"
      */
     float getOutput_DiffAhead(float fb, float fb_d);
     void reset();

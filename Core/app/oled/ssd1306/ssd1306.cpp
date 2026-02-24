@@ -4,7 +4,7 @@ void SSD1306_I2C::sendCmd(uint8_t cmd) {
     uint8_t SendBuffer[2];
     SendBuffer[0] = 0x00; // Control byte for command
     SendBuffer[1] = cmd;
-    HAL_I2C_Master_Transmit(this->_hi2c_, this->_address_, SendBuffer, 2, HAL_MAX_DELAY);
+    HAL_I2C_Master_Transmit(this->hi2c, this->address, SendBuffer, 2, HAL_MAX_DELAY);
 }
 
 void SSD1306_I2C::init(){
@@ -61,6 +61,6 @@ void SSD1306_I2C::showFrame(){
         sendCmd(0xB0 + i);
         sendCmd(0x00);
         sendCmd(0x10);
-        HAL_I2C_Master_Transmit(this->_hi2c_, this->_address_, SendBuffer, this->col() + 1, HAL_MAX_DELAY);
+        HAL_I2C_Master_Transmit(this->hi2c, this->address, SendBuffer, this->col() + 1, HAL_MAX_DELAY);
     }
 }

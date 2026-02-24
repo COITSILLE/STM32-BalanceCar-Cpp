@@ -2,24 +2,16 @@
 #define __IMU_H__
 
 
-#ifdef __cplusplus
-extern "C" {
-
 #include "dwt_ustime.h"
 #include "smath.h"
 #include "vector.h"
 #include <stdint.h>
 
-#endif
-
-#ifdef __cplusplus
-}
-
 template<typename Sensor_i, typename _InitParams_>
 class IMU_Base{
 public:
     using Vec3_t = ::Vec3_t;
-    void init(_InitParams_ params){static_cast<Sensor_i*>(this)->init(params);};
+    void init(const _InitParams_& init_params){static_cast<Sensor_i*>(this)->init(init_params);};
     void readAccel(Vec3_t& accel_vec) {static_cast<Sensor_i*>(this)->readAccel(accel_vec);};
     void readGyro(Vec3_t& gyro_vec) {static_cast<Sensor_i*>(this)->readGyro(gyro_vec);};
     /**
@@ -43,8 +35,8 @@ public:
      * @param sample_times Number of samples to take for averaging
      */
     void calibrateZ(float sample_times);
+    void setCalibration(const Vec3_t& accel_calibration, const Vec3_t& gyro_calibration);
 
-    void setCalibration(Vec3_t accel_calibration, Vec3_t gyro_calibration);
     Vec3_t getCalibrationAccel() const { return this->calibration.accel; }
     Vec3_t getCalibrationGyro() const { return this->calibration.gyro; }
     //TODO： Magnetometer support
@@ -52,19 +44,17 @@ protected:
     timestamp_t last_time = 0;
     Vec3_t last_euler_angles = {0.0f, 0.0f, 0.0f};
     struct{
-        Vec3_t accel;
-        Vec3_t gyro;
+        Vec3_t accel = {0.0f, 0.0f, 0.0f};
+        Vec3_t gyro = {0.0f, 0.0f, 0.0f};
     } calibration;
     struct{
         float g = 9.8f;
-        float sampling_period;
+        float sampling_period = 0.0f;
     } params;
 };
 
 #ifndef __IMU_IPP__
 #include "imu.ipp"
 #endif
-
-#endif /* __cplusplus */
 
 #endif /* __IMU_H__ */

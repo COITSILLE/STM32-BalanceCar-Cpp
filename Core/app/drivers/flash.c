@@ -1,6 +1,6 @@
 #include "flash.h"
 
-int Flash_WriteType(void *data, uint8_t type_size, uint16_t len, FLASHAddrs addr){
+int Flash_WriteType(void *data, uint8_t type_size, uint16_t len, FlashAddrs addr){
     if (addr > FLASH_PAGE_MAX || data == NULL || len == 0)
         return -1; 
 
@@ -59,7 +59,7 @@ int Flash_WriteType(void *data, uint8_t type_size, uint16_t len, FLASHAddrs addr
     __enable_irq();
     return 0;
 }
-int Flash_ReadType(void *data, uint8_t type_size, uint16_t len, FLASHAddrs addr){
+int Flash_ReadType(void *data, uint8_t type_size, uint16_t len, FlashAddrs addr){
     if (addr > FLASH_PAGE_MAX || data == NULL || len == 0)
         return -1;
 

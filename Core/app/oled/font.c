@@ -1,10 +1,5 @@
 #include "font.h"
 
-#define ascii16 &ASCII16
-#define ascii12 &ASCII12
-#define ascii8 &ASCII8
-
-
 #ifdef ascii16
 const uint8_t ASCII16x16[95][32] =
 {

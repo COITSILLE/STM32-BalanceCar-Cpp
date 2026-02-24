@@ -2,17 +2,11 @@
 #define MPU6050_H
 
 #include "vector.h"
-#ifdef __cplusplus
-extern "C" {
-    
 #include "main.h"
 #include "i2c.h"
 #include <stdint.h>
 
-#endif
-
 #ifdef __cplusplus
-}
 #include "imu.h"
 struct InitParams{
     uint8_t accelFS;
@@ -25,7 +19,7 @@ struct InitParams{
 class MPU6050 : public IMU_Base<MPU6050, InitParams> {
 public:
     MPU6050(I2C_HandleTypeDef *hi2c, uint16_t address = 0xD0)
-        : _hi2c_(hi2c), _address_(address) {} //typical address: 0xD0
+        : hi2c(hi2c), address(address) {} //typical address: 0xD0
     /**
      * @brief Initialize the MPU6050
      * @param init_params.accelFS Accelerometer Full Scale: 2/4/8/16g
@@ -43,11 +37,11 @@ public:
     void readAccelGyro_IT_Start(uint8_t *buffer);
     void readAccelGyro_IT_CpltHandler(uint8_t *buffer, Vec3_t& accel_vec, Vec3_t& gyro_vec);
 private:
-    I2C_HandleTypeDef *_hi2c_;
-    const uint16_t _address_;
+    I2C_HandleTypeDef *hi2c;
+    const uint16_t address;
     void setReg(uint8_t reg, uint8_t value);
-    float AccelFactor;
-    float GyroFactor;
+    float AccelFactor = 0.0f;
+    float GyroFactor = 0.0f;
 };
 
 

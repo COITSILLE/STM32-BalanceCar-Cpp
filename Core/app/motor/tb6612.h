@@ -5,14 +5,7 @@
 #include "motor_state.h"
 #include <stdint.h>
 
-#ifdef __cplusplus
-extern "C"{ 
-#endif
-
-#ifdef __cplusplus
-}
-
-struct TB6612_GPIOParams{
+struct TB6612GPIOParams{
     GPIO_TypeDef *Ctrl1GPIOx;
     uint16_t Ctrl1Pin;
     GPIO_TypeDef *Ctrl2GPIOx;
@@ -24,15 +17,13 @@ struct TB6612_GPIOParams{
 
 class TB6612_Motor{
 private:
-    TB6612_GPIOParams gpio_params;
+    TB6612GPIOParams gpio_params;
     PWM pwm;
 public:
     TB6612_Motor(PWM pwm) : pwm(pwm){};
-    void init(TB6612_GPIOParams init_params);
+    void init(TB6612GPIOParams init_params);
     void stby(bool state);
-    void setControl(MOTOR_STATE state);
+    void setControl(MotorState state);
     void setDuty(float duty);
 };
 #endif
-
-#endif 

@@ -39,8 +39,34 @@ void PID::setLimit(float max_output, float min_output, float ki_limit){
     this->ki_limit = assert_num(ki_limit);
 }
 
+float PID::getOutput(float fb){
+    timestamp_t time_now = getTick();
+    float dt = getDistance(last_time, time_now) * 1.0e-6;
+    float err = this->sp - fb;
 
-float PID::getOutput(float fb, float tau){
+    float err_i = this->last_err_i + (err + this->last_err) * dt * 0.5;
+
+    float err_d = (err - this->last_err) / dt;
+    
+    if (err_i > this->ki_limit || err_i < -this->ki_limit){
+        err_i = this->ki_limit * (err_i > 0 ? 1 : -1);
+    }
+    
+    this->last_err = err;
+    this->last_err_i = err_i;
+    this->last_time = time_now;
+
+    float res = this->kp * err + this->kd * err_d + this->ki * err_i;
+    if (res > this->max_output){
+        res = this->max_output;
+    }
+    else if (res < this->min_output){
+        res = this->min_output;
+    }
+    return res;
+}
+
+float PID::getOutput_IncompDiff(float fb, float tau){
     timestamp_t time_now = getTick();
     float dt = getDistance(last_time, time_now) * 1.0e-6;
     float err = this->sp - fb;
@@ -49,7 +75,7 @@ float PID::getOutput(float fb, float tau){
 
     float d_err = err - this->last_err;
     float alpha = dt / (tau + dt);
-    float err_d = alpha * d_err / dt + (1 - alpha) * this->last_err_d;
+    float err_d = alpha * (d_err / dt - this->last_err_d) + this->last_err_d;
     this->last_err_d = err_d;
     
     if (err_i > this->ki_limit || err_i < -this->ki_limit){
@@ -61,6 +87,34 @@ float PID::getOutput(float fb, float tau){
     this->last_time = time_now;
 
     float res = this->kp * err + this->kd * err_d + this->ki * err_i;
+    if (res > this->max_output){
+        res = this->max_output;
+    }
+    else if (res < this->min_output){
+        res = this->min_output;
+    }
+    return res;
+}
+
+float PID::getOutput_DiffAhead(float fb){
+    timestamp_t time_now = getTick();
+    float dt = getDistance(last_time, time_now) * 1.0e-6;
+    float err = this->sp - fb;
+
+    float err_i = this->last_err_i + (err + this->last_err) * dt * 0.5;
+
+    float last_fb = this->last_sp - this->last_err;
+    float fb_d = (fb - last_fb) / dt;
+    
+    if (err_i > this->ki_limit || err_i < -this->ki_limit){
+        err_i = this->ki_limit * (err_i > 0 ? 1 : -1);
+    }
+
+    this->last_err = err;
+    this->last_err_i = err_i;
+    this->last_time = time_now;
+
+    float res = this->kp * err - this->kd * fb_d + this->ki * err_i;
     if (res > this->max_output){
         res = this->max_output;
     }
