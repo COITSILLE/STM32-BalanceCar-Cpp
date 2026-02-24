@@ -44,7 +44,7 @@ float exp_voltage_rot;  // 转向控制电压 (V)
 Vec3_t Accel, Gyro, EurAngs;  // 加速度、角速度、欧拉角
 
 // 调试和性能监测
-//uint32_t Task_runtime1, Task_runtime2, Task_runtime3;  // 任务运行时间统计 (us)
+//volatile uint32_t Task_runtime1, Task_runtime2, Task_runtime3;  // 任务运行时间统计 (us)
 
 // UART通信相关
 volatile uint8_t UARTRcvBfr[40];  // UART接收缓冲区
@@ -218,7 +218,7 @@ void loop() {
 
     // 系统监控
     Task_GetBatteryVoltage(5000);  // 5000ms: 电池电压检测
-    Task_OLED(500);                // 500ms: OLED显示更新
+    Task_OLED(300);                // 300ms: OLED显示更新
 }
 
 // ==================== 任务函数实现 ====================
@@ -228,7 +228,7 @@ void loop() {
  */
 void Task_IMU(uint8_t runtime) {
     NON_BLOCK_DELAY(runtime);
-    // 当IMU数据就绪且上次读取完成时，启动新的DMA读取
+    // 当IMU数据就绪且上次读取完成时，启动新的读取
     if (imu_ready_flag && imu_cplt_flag) {
         imu_ready_flag = 0;
         imu_cplt_flag = 0;
@@ -335,13 +335,13 @@ void Task_GetBatteryVoltage(uint16_t runtime){
  */
 void Task_UART(uint16_t runtime){
     NON_BLOCK_DELAY(runtime);
-    if ((!(debug_mode)) && uart_flag && info_flag) {
+    if (uart_flag && info_flag) {
         msg.ch[0] = exp_voltage_t; // 发送总期望电压，便于调试观察
         msg.ch[1] = linvel;
         msg.ch[2] = EurAngs.y;
-        msg.ch[3] = exp_voltage_v;
+        msg.ch[3] = -exp_voltage_v;
         msg.ch[4] = Gyro.y;
-        msg.ch[5] = raw_angvel;
+        msg.ch[5] = exp_voltage_t - exp_voltage_v; // 计算得到的直立控制电压，便于调试观察
         HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&msg, sizeof(msg));
         uart_flag = 0;
   }
@@ -352,8 +352,8 @@ void Task_UART(uint16_t runtime){
  */
 void Task_OLED(uint16_t runtime){
     NON_BLOCK_DELAY(runtime);
-    char oled_msg[20];
     if (debug_mode){
+        char oled_msg[20];
         oled.clear();
         char digit_msg[16] = "\0";
         float args[3] = {exp_voltage_t + exp_voltage_v, EurAngs.y, bat_voltage};
@@ -532,6 +532,12 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
             else if (strcmp(cmd, "limit3") == 0) {
                 cmd_flag = CMD_LIMITR;
             }
+            else if (strcmp(cmd, "info_on") == 0) {
+                info_flag = 1;              // 允许发送调试信息
+            }
+            else if (strcmp(cmd, "info_off") == 0) {
+                info_flag = 0;              // 禁止发送调试信息
+            }
             else {
                 sprintf(msg, "%15s", "unknown cmd");
                 HAL_UART_Transmit(&huart2, (uint8_t *)msg, sizeof(msg), 1000);
@@ -662,12 +668,6 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
             }
             else if (strcmp(cmd, "info_off") == 0) {
                 info_flag = 0;              // 禁止发送调试信息
-            }
-            else {
-                char error_msg[20];
-                sprintf(error_msg, "%15s", "unknown cmd");
-                HAL_UART_Transmit(&huart2, (uint8_t *)error_msg, sizeof(error_msg), 1000);
-                HAL_UART_Transmit(&huart2, tail, 4, 1000);
             }
             
             memset((uint8_t *)UARTRcvBfr, 0, sizeof(UARTRcvBfr));
