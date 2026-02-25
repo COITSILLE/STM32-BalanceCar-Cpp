@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>平衡小车蓝牙遥控助手</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .terminal {
+            background-color: #1a1a1a;
+            color: #00ff00;
+            font-family: 'Courier New', Courier, monospace;
+            height: 300px;
+            overflow-y: auto;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .status-dot {
+            height: 12px;
+            width: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        .btn-wasd {
+            width: 64px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            touch-action: manipulation;
+        }
+        /* Toggle Switch Style */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 24px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px; width: 18px;
+            left: 3px; bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider { background-color: #2563eb; }
+        input:checked + .slider:before { transform: translateX(26px); }
+
+        /* 键盘按下时的视觉反馈类 */
+        .btn-active {
+            opacity: 0.7 !important;
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-4 md:p-8">
+    <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-6">
+        <h1 class="text-2xl font-bold mb-6 text-gray-800 border-b pb-4">平衡小车远程控制终端</h1>
+
+        <!-- 配置栏 -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 items-end">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">波特率</label>
+                <input type="number" id="baudRate" value="115200" class="w-full border rounded px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div class="flex items-center space-x-4">
+                <button id="connectBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded transition duration-200">
+                    连接串口
+                </button>
+                <div class="flex items-center">
+                    <span id="statusDot" class="status-dot bg-red-500"></span>
+                    <span id="statusText" class="text-sm text-gray-600 font-medium">未连接</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- 左侧：终端 -->
+            <div class="flex flex-col">
+                <h2 class="text-lg font-semibold mb-2">接收终端</h2>
+                <div id="terminal" class="terminal mb-4"></div>
+                <div class="flex space-x-2">
+                    <input type="text" id="commandInput" placeholder="输入指令..." class="flex-1 border rounded px-3 py-2 outline-none">
+                    <button id="sendBtn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">发送</button>
+                    <button id="clearBtn" class="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded">清屏</button>
+                </div>
+            </div>
+
+            <!-- 右侧：遥控面板 -->
+            <div class="flex flex-col space-y-6">
+                <div class="flex flex-col items-center justify-center bg-gray-50 rounded-lg p-6 border border-dashed border-gray-300 relative">
+                    <div class="absolute top-4 right-4 flex items-center space-x-2">
+                        <span class="text-sm font-medium text-gray-600">键盘操控</span>
+                        <label class="switch">
+                            <input type="checkbox" id="kbControlToggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <h2 class="text-lg font-semibold mb-6">遥控面板 (WASD)</h2>
+                    
+                    <div class="grid grid-cols-3 gap-4">
+                        <div></div>
+                        <button id="btnW" class="btn-wasd bg-blue-500 hover:bg-blue-600 text-white rounded-lg shadow-md font-bold text-xl transition">W</button>
+                        <div></div>
+                        
+                        <button id="btnA" class="btn-wasd bg-blue-500 hover:bg-blue-600 text-white rounded-lg shadow-md font-bold text-xl transition">A</button>
+                        <button id="btnS" class="btn-wasd bg-blue-500 hover:bg-blue-600 text-white rounded-lg shadow-md font-bold text-xl transition">S</button>
+                        <button id="btnD" class="btn-wasd bg-blue-500 hover:bg-blue-600 text-white rounded-lg shadow-md font-bold text-xl transition">D</button>
+                    </div>
+
+                    <!-- 速度参数设置区 -->
+                    <div class="mt-8 w-full border-t pt-4 grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">前进速度，不超过0.5</label>
+                            <input type="number" id="speedWalk" step="0.1" value="0.3" class="w-full border rounded px-2 py-1 text-sm outline-none focus:ring-1 focus:ring-blue-400 text-center">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">旋转速度</label>
+                            <input type="number" id="speedTurn" step="0.5" value="3.0" class="w-full border rounded px-2 py-1 text-sm outline-none focus:ring-1 focus:ring-blue-400 text-center">
+                        </div>
+                    </div>
+
+                    <div class="mt-4 text-xs text-gray-400 text-center">
+                        键盘控制需开启右上角开关
+                    </div>
+                </div>
+
+                <!-- 调试信息开关 -->
+                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <h2 class="text-md font-semibold mb-3 text-gray-700 text-center">调试信息控制</h2>
+                    <div class="flex justify-around">
+                        <button id="infoOnBtn" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-full font-medium transition shadow active:scale-95">
+                            开启调试 (info_on)
+                        </button>
+                        <button id="infoOffBtn" class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-full font-medium transition shadow active:scale-95">
+                            关闭调试 (info_off)
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 串口变量
+        let port;
+        let reader;
+        let writer;
+        let keepReading = true;
+        const tail = new Uint8Array([0x00, 0x00, 0x80, 0x7f]);
+
+        // 指令发送控制
+        let lastSendTime = 0;
+        const MIN_INTERVAL = 50; 
+
+        // DOM 元素
+        const connectBtn = document.getElementById('connectBtn');
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const terminal = document.getElementById('terminal');
+        const commandInput = document.getElementById('commandInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const baudInput = document.getElementById('baudRate');
+        const kbControlToggle = document.getElementById('kbControlToggle');
+        
+        // 速度输入框
+        const speedWalkInput = document.getElementById('speedWalk');
+        const speedTurnInput = document.getElementById('speedTurn');
+
+        // 按钮元素
+        const btnW = document.getElementById('btnW');
+        const btnA = document.getElementById('btnA');
+        const btnS = document.getElementById('btnS');
+        const btnD = document.getElementById('btnD');
+        const infoOnBtn = document.getElementById('infoOnBtn');
+        const infoOffBtn = document.getElementById('infoOffBtn');
+
+        const keyToBtnMap = {
+            'w': btnW,
+            'a': btnA,
+            's': btnS,
+            'd': btnD
+        };
+
+        // 日志打印
+        function log(msg, isInput = true) {
+            const time = new Date().toLocaleTimeString();
+            const div = document.createElement('div');
+            div.className = isInput ? 'text-green-400' : 'text-blue-300';
+            div.textContent = `[${time}] ${isInput ? 'RX' : 'TX'}: ${msg}`;
+            terminal.appendChild(div);
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        // 发送带帧尾的数据
+        async function sendCommand(text) {
+            if (!writer) return;
+            
+            const now = Date.now();
+            const timeDiff = now - lastSendTime;
+
+            // 只有当是停止指令（包含" 0"）时才执行延迟保护
+            if (text.endsWith(' 0') && timeDiff < MIN_INTERVAL) {
+                setTimeout(() => sendRaw(text), MIN_INTERVAL - timeDiff);
+            } else {
+                await sendRaw(text);
+            }
+        }
+
+        async function sendRaw(text) {
+            if (!writer) return;
+            try {
+                const encoder = new TextEncoder();
+                const textData = encoder.encode(text);
+                const combinedData = new Uint8Array(textData.length + tail.length);
+                combinedData.set(textData);
+                combinedData.set(tail, textData.length);
+                
+                await writer.write(combinedData);
+                lastSendTime = Date.now();
+                log(text, false);
+            } catch (error) {
+                console.error('发送失败:', error);
+            }
+        }
+
+        // 连接逻辑
+        connectBtn.addEventListener('click', async () => {
+            if (port) {
+                keepReading = false;
+                if (reader) await reader.cancel();
+                if (writer) {
+                    writer.releaseLock();
+                    writer = null;
+                }
+                setTimeout(async () => {
+                    try { await port.close(); } catch(e) {}
+                    port = null;
+                    updateStatus(false);
+                }, 150);
+                return;
+            }
+            try {
+                port = await navigator.serial.requestPort();
+                const baudRate = parseInt(baudInput.value);
+                await port.open({ baudRate });
+                updateStatus(true);
+                keepReading = true;
+                readLoop();
+            } catch (err) {
+                console.error('连接错误:', err);
+            }
+        });
+
+        function updateStatus(connected) {
+            if (connected) {
+                statusDot.className = 'status-dot bg-green-500';
+                statusText.textContent = '已连接';
+                connectBtn.textContent = '断开连接';
+                connectBtn.classList.replace('bg-blue-600', 'bg-red-600');
+                writer = port.writable.getWriter();
+            } else {
+                statusDot.className = 'status-dot bg-red-500';
+                statusText.textContent = '未连接';
+                connectBtn.textContent = '连接串口';
+                connectBtn.classList.replace('bg-red-600', 'bg-blue-600');
+            }
+        }
+
+        // 读取循环
+        async function readLoop() {
+            const decoder = new TextDecoder();
+            while (port && port.readable && keepReading) {
+                reader = port.readable.getReader();
+                try {
+                    while (true) {
+                        const { value, done } = await reader.read();
+                        if (done || !keepReading) break;
+                        log(decoder.decode(value), true);
+                    }
+                } catch (err) {
+                    console.error('读取错误:', err);
+                } finally {
+                    if (reader) {
+                        reader.releaseLock();
+                        reader = null;
+                    }
+                }
+            }
+        }
+
+        // 调试信息按钮逻辑
+        infoOnBtn.addEventListener('click', () => sendCommand('info_on'));
+        infoOffBtn.addEventListener('click', () => sendCommand('info_off'));
+
+        // 手动发送
+        sendBtn.addEventListener('click', () => {
+            const val = commandInput.value.trim();
+            if (val) {
+                sendCommand(val);
+                commandInput.value = '';
+            }
+        });
+
+        commandInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendBtn.click();
+        });
+
+        clearBtn.addEventListener('click', () => terminal.innerHTML = '');
+
+        // 遥控逻辑
+        const setupControl = (btn, getPressCmd, releaseCmd) => {
+            const start = (e) => {
+                e.preventDefault();
+                sendCommand(getPressCmd());
+                btn.classList.add('btn-active');
+            };
+            const end = (e) => {
+                e.preventDefault();
+                sendCommand(releaseCmd);
+                btn.classList.remove('btn-active');
+            };
+            btn.addEventListener('mousedown', start);
+            btn.addEventListener('mouseup', end);
+            btn.addEventListener('touchstart', start, {passive: false});
+            btn.addEventListener('touchend', end, {passive: false});
+        };
+
+        // 绑定按钮，动态读取输入框数值
+        setupControl(btnW, () => `sp2 ${speedWalkInput.value}`, 'sp2 0');
+        setupControl(btnS, () => `sp2 -${speedWalkInput.value}`, 'sp2 0');
+        setupControl(btnA, () => `sp3 ${speedTurnInput.value}`, 'sp3 0');
+        setupControl(btnD, () => `sp3 -${speedTurnInput.value}`, 'sp3 0');
+
+        // 键盘映射
+        const keyState = {};
+        window.addEventListener('keydown', (e) => {
+            if (!kbControlToggle.checked) return;
+            if (document.activeElement === commandInput) return;
+
+            const key = e.key.toLowerCase();
+            if (keyState[key]) return; 
+            keyState[key] = true;
+
+            const v = speedWalkInput.value;
+            const r = speedTurnInput.value;
+
+            // 添加按钮视觉反馈
+            if (keyToBtnMap[key]) {
+                keyToBtnMap[key].classList.add('btn-active');
+            }
+
+            if (key === 'w') sendCommand(`sp2 ${v}`);
+            if (key === 's') sendCommand(`sp2 -${v}`);
+            if (key === 'a') sendCommand(`sp3 ${r}`);
+            if (key === 'd') sendCommand(`sp3 -${r}`);
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (!kbControlToggle.checked) return;
+            
+            const key = e.key.toLowerCase();
+            keyState[key] = false;
+
+            // 移除按钮视觉反馈
+            if (keyToBtnMap[key]) {
+                keyToBtnMap[key].classList.remove('btn-active');
+            }
+
+            if (key === 'w' || key === 's') sendCommand('sp2 0');
+            if (key === 'a' || key === 'd') sendCommand('sp3 0');
+        });
+
+    </script>
+</body>
+</html>
