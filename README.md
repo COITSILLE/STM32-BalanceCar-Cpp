@@ -1,8 +1,6 @@
 # STM32-BalanceCar-Cpp
 
 ## 目录
-- [STM32-BalanceCar-Cpp](#stm32-balancecar-cpp)
-  - [目录](#目录)
 - [**简介**](#简介)
 - [**使用的模块、芯片**](#使用的模块芯片)
 - [**推荐的上位机**](#推荐的上位机)
